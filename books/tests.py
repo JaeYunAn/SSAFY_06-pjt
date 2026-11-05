@@ -435,3 +435,44 @@ class ThreadDeleteViewTests(TestCase):
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(self.url).status_code, 405)
         self.assertTrue(Thread.objects.exists())
+
+
+class LikeViewTests(TestCase):
+    """F624 like"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.thread = make_thread(cls.user, make_book(cls.user))
+        cls.url = reverse('books:like', args=[cls.thread.pk])
+        cls.detail_url = reverse('books:thread_detail', args=[cls.thread.pk])
+
+    def test_post_toggles_like_and_returns_to_thread_detail(self):
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.post(self.url), self.detail_url)
+        self.assertIn(self.user, self.thread.like_users.all())
+        self.assertRedirects(self.client.post(self.url), self.detail_url)
+        self.assertNotIn(self.user, self.thread.like_users.all())
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_anonymous_post_is_sent_to_login(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+        self.assertFalse(self.thread.like_users.exists())
+
+    def test_button_label_and_count_follow_like_state(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.detail_url)
+        self.assertContains(response, '>좋아요<')
+        self.assertContains(response, '0 좋아요')
+
+        self.thread.like_users.add(self.user)
+        response = self.client.get(self.detail_url)
+        self.assertContains(response, '좋아요 취소')
+        self.assertContains(response, '1 좋아요')
+
+    def test_button_is_hidden_from_anonymous_user(self):
+        self.assertNotContains(self.client.get(self.detail_url), self.url)

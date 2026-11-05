@@ -14,6 +14,18 @@
       <hr>
       <p>{{ thread.content|linebreaksbr }}</p>
 
+      <p class="small mb-2">&hearts; {{ thread.like_users.count }} 좋아요</p>
+      {% if request.user.is_authenticated %}
+        <form action="{% url 'books:like' thread.pk %}" method="POST" class="mb-3">
+          {% csrf_token %}
+          {% if is_liked %}
+            <button type="submit" class="btn btn-outline-success btn-sm">좋아요 취소</button>
+          {% else %}
+            <button type="submit" class="btn btn-success btn-sm">좋아요</button>
+          {% endif %}
+        </form>
+      {% endif %}
+
       {% if request.user == thread.user %}
         <div class="d-flex gap-2">
           <a class="btn btn-secondary btn-sm" href="{% url 'books:thread_update' thread.pk %}">수정</a>

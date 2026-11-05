@@ -112,6 +112,7 @@ def thread_detail(request, thread_pk):
 
     context = {
         'thread': thread,
+        'is_liked': thread.like_users.filter(pk=request.user.pk).exists(),
     }
     return render(request, 'books/thread_detail.html', context)
 
@@ -150,3 +151,16 @@ def thread_delete(request, thread_pk):
     book_pk = thread.book_id
     thread.delete()
     return redirect('books:detail', book_pk)
+
+
+@require_POST
+@login_required
+def like(request, thread_pk):
+    thread = get_object_or_404(Thread, pk=thread_pk)
+
+    if thread.like_users.filter(pk=request.user.pk).exists():
+        thread.like_users.remove(request.user)
+    else:
+        thread.like_users.add(request.user)
+
+    return redirect('books:thread_detail', thread.pk)
