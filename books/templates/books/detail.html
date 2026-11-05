@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ book.title }}</h1>
+
+  <p>저자: {{ book.author }}</p>
+  <p>설명: {{ book.description }}</p>
+  <p>평점: {{ book.rating }}</p>
+  <p>등록자: {{ book.user.username }}</p>
+
+  {% if request.user == book.user %}
+    <a href="{% url 'books:update' book.pk %}">수정</a>
+
+    <form action="{% url 'books:delete' book.pk %}" method="POST">
+      {% csrf_token %}
+      <input type="submit" value="삭제">
+    </form>
+  {% endif %}
+
+  <hr>
+
+  <h2>쓰레드 목록</h2>
+
+  {% if request.user.is_authenticated %}
+    <a href="{% url 'books:thread_create' book.pk %}">쓰레드 작성</a>
+  {% endif %}
+
+  {% for thread in threads %}
+    <p>
+      <a href="{% url 'books:thread_detail' thread.pk %}">
+        {{ thread.title }}
+      </a>
+    </p>
+  {% empty %}
+    <p>아직 작성된 쓰레드가 없습니다.</p>
+  {% endfor %}
+
+  <a href="{% url 'books:index' %}">목록으로</a>
+{% endblock content %}

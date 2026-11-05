@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ thread.title }}</h1>
+
+  <p>도서: {{ thread.book.title }}</p>
+  <p>작성자: {{ thread.user.username }}</p>
+  <p>내용: {{ thread.content }}</p>
+  <p>독서일: {{ thread.reading_date }}</p>
+  <p>작성일: {{ thread.created_at }}</p>
+  <p>수정일: {{ thread.updated_at }}</p>
+
+  {% if request.user == thread.user %}
+    <a href="{% url 'books:thread_update' thread.pk %}">수정</a>
+
+    <form action="{% url 'books:thread_delete' thread.pk %}" method="POST">
+      {% csrf_token %}
+      <input type="submit" value="삭제">
+    </form>
+  {% endif %}
+
+  <hr>
+
+  <a href="{% url 'books:detail' thread.book.pk %}">도서 상세로 돌아가기</a>
+{% endblock content %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ person.username }}님의 프로필</h1>
+
+  {% if person.profile_image %}
+    <img src="{{ person.profile_image.url }}" alt="프로필 사진" width="150">
+  {% endif %}
+
+  <p>이메일: {{ person.email }}</p>
+  <p>성: {{ person.last_name }}</p>
+  <p>이름: {{ person.first_name }}</p>
+  <p>성별: {{ person.gender }}</p>
+  <p>나이: {{ person.age }}</p>
+  <p>주간 평균 독서 시간: {{ person.weekly_reading_time }}</p>
+  <p>연간 독서량: {{ person.yearly_reading_count }}</p>
+
+  {% if request.user == person %}
+    <a href="{% url 'accounts:update' %}">회원정보 수정</a>
+    <a href="{% url 'accounts:change_password' %}">비밀번호 변경</a>
+
+    <form action="{% url 'accounts:delete' %}" method="POST">
+      {% csrf_token %}
+      <input type="submit" value="회원 탈퇴">
+    </form>
+  {% endif %}
+{% endblock content %}

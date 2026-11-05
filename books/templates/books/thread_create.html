@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ book.title }} - 쓰레드 작성</h1>
+
+  <form action="{% url 'books:thread_create' book.pk %}" method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="작성">
+  </form>
+{% endblock content %}
