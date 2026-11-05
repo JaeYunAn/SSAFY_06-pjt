@@ -1,1 +1,21 @@
-venv
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# Django 로컬 데이터
+db.sqlite3
+media/
+
+# 비밀 정보
+.env
+
+# 대외비 명세서
+*.pdf
+
+# 편집기·OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
