@@ -1,11 +1,18 @@
 {% extends 'base.html' %}
 
-{% block content %}
-  <h1>{{ book.title }} - 쓰레드 작성</h1>
+{% block title %}쓰레드 작성 | ThRead{% endblock title %}
 
-  <form action="{% url 'books:thread_create' book.pk %}" method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="작성">
-  </form>
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <h1 class="h3 border-bottom pb-2 mb-3">쓰레드 작성</h1>
+      <p class="text-body-secondary small">도서: {{ book.title }}</p>
+      <form action="{% url 'books:thread_create' book.pk %}" method="POST">
+        {% csrf_token %}
+        {% include 'partials/form_fields.html' %}
+        <button type="submit" class="btn btn-outline-success btn-sm">작성</button>
+        <a class="btn btn-outline-danger btn-sm" href="{% url 'books:detail' book.pk %}">취소</a>
+      </form>
+    </div>
+  </div>
 {% endblock content %}

@@ -291,3 +291,40 @@ class DeleteViewTests(TestCase):
         self.client.force_login(self.owner)
         self.assertEqual(self.client.get(self.url).status_code, 405)
         self.assertTrue(Book.objects.exists())
+
+
+class ThreadCreateViewTests(TestCase):
+    """F620 thread_create"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.book = make_book(cls.user)
+        cls.url = reverse('books:thread_create', args=[cls.book.pk])
+
+    def data(self, **overrides):
+        return {'title': '감상', 'content': '내용', 'reading_date': '2026-10-08', **overrides}
+
+    def test_get_renders_form(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'type="date"')
+
+    def test_valid_post_saves_relations_and_redirects_to_thread_detail(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, self.data())
+        thread = Thread.objects.get()
+        self.assertEqual((thread.user, thread.book), (self.user, self.book))
+        self.assertRedirects(response, reverse('books:thread_detail', args=[thread.pk]))
+
+    def test_invalid_post_shows_error_and_saves_nothing(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, self.data(reading_date=''))
+        self.assertContains(response, 'text-danger')
+        self.assertFalse(Thread.objects.exists())
+
+    def test_anonymous_user_cannot_create(self):
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+        self.assertFalse(Thread.objects.exists())
