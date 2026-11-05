@@ -3,7 +3,7 @@ from datetime import date
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from .forms import BookForm, ThreadForm
 from .models import Book, Thread
@@ -115,3 +115,21 @@ class BookThreadFormTests(TestCase):
         fields = ThreadForm().fields
         for name in ('user', 'book', 'like_users'):
             self.assertNotIn(name, fields)
+
+
+class IndexViewTests(TestCase):
+    """F615 index"""
+
+    url = reverse_lazy('books:index')
+
+    def test_shows_every_book_with_detail_link_without_login(self):
+        user = make_user()
+        books = [make_book(user, title='데미안'), make_book(user, title='노인과 바다')]
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        for book in books:
+            self.assertContains(response, book.title)
+            self.assertContains(response, reverse('books:detail', args=[book.pk]))
+
+    def test_empty_state_message(self):
+        self.assertContains(self.client.get(self.url), '등록된 도서가 없습니다.')

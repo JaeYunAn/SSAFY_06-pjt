@@ -9,7 +9,7 @@ from .forms import BookForm, ThreadForm
 
 @require_safe
 def index(request):
-    books = Book.objects.all()
+    books = Book.objects.select_related('user')
 
     context = {
         'books': books,
