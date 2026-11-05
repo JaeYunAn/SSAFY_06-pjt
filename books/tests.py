@@ -219,3 +219,48 @@ class DetailViewTests(TestCase):
 
     def test_unknown_book_returns_404(self):
         self.assertEqual(self.client.get(reverse('books:detail', args=[99999])).status_code, 404)
+
+
+class UpdateViewTests(TestCase):
+    """F618 update"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = make_user('owner')
+        cls.other = make_user('other')
+        cls.book = make_book(cls.owner)
+        cls.url = reverse('books:update', args=[cls.book.pk])
+
+    def data(self, **overrides):
+        return {'title': '수정된 제목', 'description': '수정된 설명', 'rating': 7, 'author': '헤르만 헤세', **overrides}
+
+    def test_get_prefills_previous_data(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'value="데미안"')
+        self.assertContains(response, '성장 소설')
+
+    def test_valid_post_saves_and_redirects_to_detail(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, reverse('books:detail', args=[self.book.pk]))
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.title, '수정된 제목')
+
+    def test_invalid_post_shows_error_and_keeps_data(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.data(rating=-1))
+        self.assertContains(response, 'text-danger')
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.title, '데미안')
+
+    def test_only_owner_can_update(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(self.client.post(self.url, self.data()).status_code, 403)
+        self.book.refresh_from_db()
+        self.assertEqual(self.book.title, '데미안')
+
+    def test_anonymous_user_is_sent_to_login(self):
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
