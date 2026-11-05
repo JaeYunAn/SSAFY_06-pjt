@@ -7,7 +7,7 @@
     <div class="col-lg-8">
       <h1 class="h3 border-bottom pb-2 mb-3">쓰레드 작성</h1>
       <p class="text-body-secondary small">도서: {{ book.title }}</p>
-      <form action="{% url 'books:thread_create' book.pk %}" method="POST">
+      <form action="{% url 'books:thread_create' book.pk %}" method="POST" data-loading-text="커버 이미지 생성 중...">
         {% csrf_token %}
         {% include 'partials/form_fields.html' %}
         <button type="submit" class="btn btn-outline-success btn-sm">작성</button>

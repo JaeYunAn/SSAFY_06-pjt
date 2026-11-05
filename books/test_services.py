@@ -1,4 +1,6 @@
+import base64
 import json
+from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 import requests
@@ -7,7 +9,7 @@ from django.test import TestCase, override_settings
 from openai import OpenAIError
 
 from . import services
-from .models import Book
+from .models import Book, Thread
 
 User = get_user_model()
 
@@ -128,3 +130,87 @@ class UpdateAuthorInfoTests(TestCase):
     @override_settings(GMS_KEY='')
     def test_missing_key_returns_false(self):
         self.assertFalse(services.update_author_info(self.book))
+
+
+@override_settings(GMS_KEY='test-key', IMAGE_MODEL='gpt-image-2')
+class GenerateThreadCoverTests(TestCase):
+    """F626 커버 이미지"""
+
+    KEYWORDS = ['solitude', 'dawn', 'mirror', 'growth', 'quiet hope']
+
+    def setUp(self):
+        user = User.objects.create_user('reader', password='pw-for-tests-1')
+        book = Book.objects.create(user=user, title='데미안', description='d', rating=9, author='헤르만 헤세')
+        self.thread = Thread.objects.create(
+            user=user, book=book, title='내면의 거울', content='자아를 찾는 여정에 깊이 공감했다.', reading_date='2026-10-08',
+        )
+        media = TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(media.cleanup)
+        settings_override = override_settings(MEDIA_ROOT=media.name)
+        settings_override.enable()
+        self.addCleanup(settings_override.disable)
+
+    def client_with(self, keywords_content=None, image=b'image-bytes'):
+        client = gpt_client(keywords_content or json.dumps({'keywords': self.KEYWORDS}))
+        client.images.generate.return_value.data = [MagicMock(b64_json=base64.b64encode(image).decode())]
+        return client
+
+    def test_saves_generated_image_to_cover_field(self):
+        with patch('books.services._openai_client', return_value=self.client_with()):
+            self.assertTrue(services.generate_thread_cover(self.thread))
+        self.thread.refresh_from_db()
+        self.assertTrue(self.thread.cover_image.name.startswith('thread_covers/thread_'))
+        with self.thread.cover_image.open('rb') as saved:
+            self.assertEqual(saved.read(), b'image-bytes')
+
+    def test_uses_required_models_and_thread_content(self):
+        client = self.client_with()
+        with patch('books.services._openai_client', return_value=client):
+            services.generate_thread_cover(self.thread)
+
+        chat = client.chat.completions.create.call_args.kwargs
+        self.assertEqual(chat['model'], 'gpt-5-nano')
+        for text in ('데미안', '헤르만 헤세', '자아를 찾는 여정'):
+            self.assertIn(text, chat['messages'][1]['content'])
+
+        image = client.images.generate.call_args.kwargs
+        self.assertEqual(image['model'], 'gpt-image-2')
+        self.assertNotIn('response_format', image)
+        for keyword in self.KEYWORDS:
+            self.assertIn(keyword, image['prompt'])
+
+    @override_settings(IMAGE_MODEL='dall-e-3')
+    def test_dall_e_model_requests_base64_response(self):
+        client = self.client_with()
+        with patch('books.services._openai_client', return_value=client):
+            self.assertTrue(services.generate_thread_cover(self.thread))
+        image = client.images.generate.call_args.kwargs
+        self.assertEqual(image['model'], 'dall-e-3')
+        self.assertEqual(image['response_format'], 'b64_json')
+        self.assertNotIn('quality', image)
+
+    def test_keeps_at_most_five_keywords(self):
+        content = json.dumps({'keywords': self.KEYWORDS + ['extra']})
+        with patch('books.services._openai_client', return_value=self.client_with(content)):
+            self.assertEqual(services.extract_cover_keywords(self.thread), self.KEYWORDS)
+
+    def test_invalid_keywords_skip_image_generation(self):
+        for content in ('not json', '{"keywords": "text"}', '{"keywords": []}'):
+            client = self.client_with(content)
+            with patch('books.services._openai_client', return_value=client):
+                self.assertFalse(services.generate_thread_cover(self.thread))
+            client.images.generate.assert_not_called()
+
+    def test_image_api_error_returns_false(self):
+        client = self.client_with()
+        client.images.generate.side_effect = OpenAIError('content policy')
+        with patch('books.services._openai_client', return_value=client):
+            self.assertFalse(services.generate_thread_cover(self.thread))
+        self.thread.refresh_from_db()
+        self.assertFalse(self.thread.cover_image)
+
+    def test_empty_image_response_returns_false(self):
+        client = self.client_with()
+        client.images.generate.return_value.data = []
+        with patch('books.services._openai_client', return_value=client):
+            self.assertFalse(services.generate_thread_cover(self.thread))

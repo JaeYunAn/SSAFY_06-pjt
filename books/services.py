@@ -1,13 +1,15 @@
-"""외부 서비스 연동: 위키피디아 검색과 생성형 AI 호출 (F625).
+"""외부 서비스 연동: 위키피디아 검색과 생성형 AI 호출 (F625, F626).
 
-외부 서비스가 실패해도 도서 저장은 유지되어야 하므로, 뷰에서 호출하는 함수는
+외부 서비스가 실패해도 도서·쓰레드 저장은 유지되어야 하므로, 뷰에서 호출하는 함수는
 예외를 전파하지 않고 성공 여부를 bool로 반환한다.
 """
+import base64
 import json
 import logging
 
 import requests
 from django.conf import settings
+from django.core.files.base import ContentFile
 from openai import OpenAI, OpenAIError
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,13 @@ AUTHOR_SYSTEM_PROMPT = """당신은 도서 커뮤니티의 작가 소개 편집�
   - author_info (문자열): 이 작가를 소개하는 한국어 문장 2~3개. 작가를 식별할 수 없으면 빈 문자열.
   - author_works (문자열 배열): 실제로 존재한다고 확신하는 대표작 제목. 최대 5개.
   - wiki_matches (불리언): 위키피디아 발췌가 이 작가에 대한 내용이면 true, 아니면 false."""
+
+COVER_KEYWORD_SYSTEM_PROMPT = """당신은 독서 감상문의 감정을 읽어 내는 아트 디렉터입니다.
+도서 제목, 저자, 독서 쓰레드를 읽고 감상의 감정과 분위기를 나타내는 시각적 키워드 5개를 고릅니다.
+- 이미지 생성에 쓰이므로 사람 이름, 작품명 같은 고유명사는 제외하고 영어 단어나 짧은 구로 작성합니다.
+- 반드시 문자열 5개의 배열을 값으로 갖는 keywords 키 하나만 있는 JSON 객체로 응답합니다."""
+COVER_KEYWORD_COUNT = 5
+COVER_CONTENT_LIMIT = 2000
 
 
 class AIServiceError(Exception):
@@ -140,3 +149,66 @@ def update_author_info(book):
 
     book.save(update_fields=['author_info', 'author_works', 'author_image_url'])
     return success
+
+
+def extract_cover_keywords(thread):
+    """도서 제목, 저자, 쓰레드 감정을 분석해 키워드 5개를 추출한다."""
+    data = _ask_gpt_json(
+        COVER_KEYWORD_SYSTEM_PROMPT,
+        f'도서 제목: {thread.book.title}\n'
+        f'저자: {thread.book.author}\n'
+        f'쓰레드 제목: {thread.title}\n'
+        f'쓰레드 본문: {thread.content[:COVER_CONTENT_LIMIT]}',
+    )
+    keywords = data.get('keywords')
+    if not isinstance(keywords, list):
+        raise AIServiceError('키워드 목록이 없습니다.')
+    keywords = [str(keyword).strip() for keyword in keywords if str(keyword).strip()]
+    if not keywords:
+        raise AIServiceError('키워드 목록이 비어 있습니다.')
+    return keywords[:COVER_KEYWORD_COUNT]
+
+
+def build_cover_prompt(keywords):
+    """추출한 키워드로 어떤 이미지를 그릴지 결정하는 프롬프트를 작성한다."""
+    return (
+        'A painterly, symbolic illustration for a book reflection cover. '
+        f"Visual motifs and mood: {', '.join(keywords)}. "
+        'Express the emotion through abstract composition, color and light. '
+        'Do not include any text, letters, logos or recognizable real people.'
+    )
+
+
+def generate_cover_image(prompt):
+    """프롬프트로 이미지를 생성해 바이트로 반환한다."""
+    # dall-e 계열만 response_format을 받고, gpt-image 계열은 항상 base64로 응답한다.
+    if settings.IMAGE_MODEL.startswith('dall-e'):
+        options = {'response_format': 'b64_json'}
+    else:
+        options = {'quality': 'low'}
+
+    response = _openai_client().images.generate(
+        model=settings.IMAGE_MODEL,
+        prompt=prompt,
+        n=1,
+        size='1024x1024',
+        **options,
+    )
+    try:
+        return base64.b64decode(response.data[0].b64_json)
+    except (IndexError, TypeError, ValueError) as error:
+        raise AIServiceError('이미지 응답을 해석할 수 없습니다.') from error
+
+
+def generate_thread_cover(thread):
+    """쓰레드 커버 이미지를 생성해 파일로 저장한다. 실패하면 False를 반환한다."""
+    try:
+        keywords = extract_cover_keywords(thread)
+        image = generate_cover_image(build_cover_prompt(keywords))
+    except (AIServiceError, OpenAIError) as error:
+        logger.warning('커버 이미지 생성 실패(thread=%s): %s', thread.pk, error)
+        return False
+
+    thread.cover_image.save(f'thread_{thread.pk}.png', ContentFile(image), save=False)
+    thread.save(update_fields=['cover_image'])
+    return True

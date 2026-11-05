@@ -5,6 +5,10 @@
 {% block content %}
   <div class="row justify-content-center">
     <div class="col-lg-9">
+      {% if thread.cover_image %}
+        <img src="{{ thread.cover_image.url }}" alt="{{ thread.title }} 커버 이미지"
+             class="img-fluid rounded mb-3 d-block" style="max-height: 420px;">
+      {% endif %}
       <h1 class="h3">{{ thread.title }}</h1>
       <p class="small">
         <strong>도서:</strong> <a href="{% url 'books:detail' thread.book.pk %}">{{ thread.book.title }}</a>

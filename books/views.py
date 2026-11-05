@@ -9,6 +9,7 @@ from .models import Book, Thread
 from .forms import BookForm, ThreadForm
 
 AUTHOR_INFO_FAILED_MESSAGE = '작가 정보를 불러오지 못했습니다. 도서는 정상적으로 저장되었습니다.'
+COVER_FAILED_MESSAGE = '커버 이미지를 생성하지 못했습니다. 쓰레드는 정상적으로 저장되었습니다.'
 
 
 @require_safe
@@ -104,6 +105,8 @@ def thread_create(request, book_pk):
             thread.user = request.user
             thread.book = book
             thread.save()
+            if not services.generate_thread_cover(thread):
+                messages.warning(request, COVER_FAILED_MESSAGE)
             return redirect('books:thread_detail', thread.pk)
     else:
         form = ThreadForm()

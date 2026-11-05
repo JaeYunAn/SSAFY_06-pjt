@@ -139,3 +139,6 @@ MEDIA_ROOT = BASE_DIR / 'media'
 GMS_KEY = os.getenv('GMS_KEY', '')
 GMS_BASE_URL = os.getenv('GMS_BASE_URL', 'https://gms.ssafy.io/gmsapi/api.openai.com/v1')
 GPT_MODEL = 'gpt-5-nano'
+# 명세 지정 모델은 dall-e-3이지만 현재 GMS가 지원하지 않아(400 응답) gpt-image-2를 기본값으로 한다.
+# GMS가 다시 지원하면 .env에 IMAGE_MODEL=dall-e-3 을 지정하면 된다.
+IMAGE_MODEL = os.getenv('IMAGE_MODEL', 'gpt-image-2')

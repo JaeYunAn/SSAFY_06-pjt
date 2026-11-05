@@ -15,9 +15,10 @@ User = get_user_model()
 
 def setUpModule():
     # 뷰 테스트가 실제 외부 API를 호출하지 않도록 서비스 함수를 대체한다.
-    patcher = patch('books.services.update_author_info', return_value=True)
-    patcher.start()
-    addModuleCleanup(patcher.stop)
+    for name in ('update_author_info', 'generate_thread_cover'):
+        patcher = patch(f'books.services.{name}', return_value=True)
+        patcher.start()
+        addModuleCleanup(patcher.stop)
 
 
 def make_user(username='reader'):
@@ -538,3 +539,50 @@ class AuthorInfoViewTests(TestCase):
     def test_form_does_not_expose_generated_fields(self):
         for name in ('author_info', 'author_works', 'author_image_url'):
             self.assertNotIn(name, BookForm().fields)
+
+
+class ThreadCoverViewTests(TestCase):
+    """F626 커버 이미지"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.book = make_book(cls.user)
+
+    def setUp(self):
+        self.client.force_login(self.user)
+        self.url = reverse('books:thread_create', args=[self.book.pk])
+        self.data = {'title': '감상', 'content': '내용', 'reading_date': '2026-10-08'}
+
+    def test_thread_create_requests_cover(self):
+        with patch('books.services.generate_thread_cover', return_value=True) as mock_cover:
+            self.client.post(self.url, self.data)
+        mock_cover.assert_called_once_with(Thread.objects.get())
+
+    def test_invalid_thread_does_not_request_cover(self):
+        with patch('books.services.generate_thread_cover', return_value=True) as mock_cover:
+            self.client.post(self.url, {**self.data, 'title': ''})
+        mock_cover.assert_not_called()
+
+    def test_thread_is_kept_with_warning_when_cover_fails(self):
+        with patch('books.services.generate_thread_cover', return_value=False):
+            response = self.client.post(self.url, self.data, follow=True)
+        self.assertEqual(Thread.objects.count(), 1)
+        self.assertContains(response, '커버 이미지를 생성하지 못했습니다.')
+
+    def test_thread_update_does_not_regenerate_cover(self):
+        thread = make_thread(self.user, self.book)
+        with patch('books.services.generate_thread_cover', return_value=True) as mock_cover:
+            self.client.post(reverse('books:thread_update', args=[thread.pk]), self.data)
+        mock_cover.assert_not_called()
+
+    def test_detail_shows_cover_only_when_present(self):
+        thread = make_thread(self.user, self.book)
+        url = reverse('books:thread_detail', args=[thread.pk])
+        self.assertNotContains(self.client.get(url), '커버 이미지"')
+
+        Thread.objects.filter(pk=thread.pk).update(cover_image='thread_covers/thread_1.png')
+        self.assertContains(self.client.get(url), 'thread_covers/thread_1.png')
+
+    def test_form_does_not_expose_cover_field(self):
+        self.assertNotIn('cover_image', ThreadForm().fields)

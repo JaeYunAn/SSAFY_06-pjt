@@ -38,6 +38,7 @@ class Thread(models.Model):
     title = models.CharField('제목', max_length=100)
     content = models.TextField('내용')
     reading_date = models.DateField('독서일')
+    cover_image = models.ImageField('커버 이미지', upload_to='thread_covers/', blank=True)
     created_at = models.DateTimeField('생성 시각', auto_now_add=True)
     updated_at = models.DateTimeField('수정 시각', auto_now=True)
     like_users = models.ManyToManyField(
