@@ -1,9 +1,11 @@
 from datetime import date
+from io import StringIO
 from unittest import addModuleCleanup
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse, reverse_lazy
 
@@ -746,3 +748,23 @@ class CategoryTests(TestCase):
         self.science_book.refresh_from_db()
         self.assertIsNone(self.science_book.category)
         self.assertEqual(self.client.get(reverse('books:detail', args=[self.science_book.pk])).status_code, 200)
+
+
+class SeedDemoCommandTests(TestCase):
+    """NF601 Git 활용: 저장소에서 제외한 DB를 재현하는 명령어"""
+
+    def test_creates_admin_and_is_idempotent(self):
+        call_command('seed_demo', stdout=StringIO())
+        counts = (User.objects.count(), Book.objects.count(), Thread.objects.count(), Comment.objects.count())
+        call_command('seed_demo', stdout=StringIO())
+        self.assertEqual(counts, (User.objects.count(), Book.objects.count(), Thread.objects.count(), Comment.objects.count()))
+
+        admin = User.objects.get(username='admin')
+        self.assertTrue(admin.is_superuser and admin.is_staff)
+        self.assertTrue(admin.check_password('1234'))
+
+    def test_keeps_existing_admin_password(self):
+        admin = User.objects.create_superuser('admin', password='already-set-pw-1')
+        call_command('seed_demo', stdout=StringIO())
+        admin.refresh_from_db()
+        self.assertTrue(admin.check_password('already-set-pw-1'))
