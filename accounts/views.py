@@ -107,8 +107,8 @@ def update(request):
     return render(request, 'accounts/update.html', context)
 
 
-@login_required
 @require_POST
+@login_required
 def delete(request):
     request.user.delete()
     auth_logout(request)

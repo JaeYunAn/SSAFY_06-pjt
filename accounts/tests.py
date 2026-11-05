@@ -351,3 +351,29 @@ class UpdateViewTests(TestCase):
         self.client.logout()
         response = self.client.get(self.url)
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+
+class DeleteViewTests(TestCase):
+    """F613 delete"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.url = reverse('accounts:delete')
+
+    def test_post_deletes_current_user_logs_out_and_redirects_to_main(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('books:index'))
+        self.assertFalse(User.objects.filter(pk=self.user.pk).exists())
+        self.assertNotIn(SESSION_KEY, self.client.session)
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+    def test_anonymous_post_deletes_nothing(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+        self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
