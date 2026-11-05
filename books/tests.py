@@ -407,3 +407,31 @@ class ThreadUpdateViewTests(TestCase):
         self.assertEqual(self.client.post(self.url, self.data()).status_code, 403)
         self.thread.refresh_from_db()
         self.assertEqual(self.thread.title, '내면의 거울')
+
+
+class ThreadDeleteViewTests(TestCase):
+    """F623 thread_delete"""
+
+    def setUp(self):
+        self.owner = make_user('owner')
+        self.other = make_user('other')
+        self.book = make_book(self.owner)
+        self.thread = make_thread(self.owner, self.book)
+        self.url = reverse('books:thread_delete', args=[self.thread.pk])
+
+    def test_owner_post_deletes_and_redirects_to_book_detail(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('books:detail', args=[self.book.pk]))
+        self.assertFalse(Thread.objects.exists())
+
+    def test_other_user_cannot_delete(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(self.url).status_code, 403)
+        self.assertTrue(Thread.objects.exists())
+
+    def test_get_is_not_allowed_even_for_anonymous_user(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertTrue(Thread.objects.exists())

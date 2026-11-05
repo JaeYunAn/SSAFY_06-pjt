@@ -139,14 +139,14 @@ def thread_update(request, thread_pk):
     return render(request, 'books/thread_update.html', context)
 
 
-@login_required
 @require_POST
+@login_required
 def thread_delete(request, thread_pk):
     thread = get_object_or_404(Thread, pk=thread_pk)
 
     if request.user != thread.user:
         raise PermissionDenied
 
-    book_pk = thread.book.pk
+    book_pk = thread.book_id
     thread.delete()
     return redirect('books:detail', book_pk)
