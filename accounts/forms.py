@@ -1,27 +1,49 @@
-from django import forms
-from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm,
+    UserChangeForm,
+    UserCreationForm,
+)
+
+from mypjt.forms import BootstrapFormMixin
 
 User = get_user_model()
 
 
-class CustomUserCreationForm(UserCreationForm):
+class LoginForm(BootstrapFormMixin, AuthenticationForm):
+    pass
+
+
+class CustomPasswordChangeForm(BootstrapFormMixin, PasswordChangeForm):
+    pass
+
+
+class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
+    field_order = (
+        'username', 'password1', 'password2', 'email', 'last_name', 'first_name',
+        'gender', 'age', 'weekly_reading_time', 'yearly_reading_count', 'profile_image',
+    )
+
     class Meta(UserCreationForm.Meta):
         model = User
         fields = (
-            'username', 'email', 'first_name', 'last_name',
+            'username', 'email', 'last_name', 'first_name',
             'gender', 'age', 'weekly_reading_time',
             'yearly_reading_count', 'profile_image',
         )
+        labels = {'username': '아이디'}
 
 
-class CustomUserChangeForm(UserChangeForm):
+class CustomUserChangeForm(BootstrapFormMixin, UserChangeForm):
+    # 비밀번호 해시와 권한 필드는 일반 사용자에게 노출하지 않는다.
     password = None
 
     class Meta(UserChangeForm.Meta):
         model = User
         fields = (
-            'email', 'first_name', 'last_name',
+            'username', 'last_name', 'first_name', 'email',
             'gender', 'age', 'weekly_reading_time',
             'yearly_reading_count', 'profile_image',
         )
+        labels = {'username': '아이디'}
