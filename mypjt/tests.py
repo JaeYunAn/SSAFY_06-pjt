@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import include, path, reverse
 
-from books.models import Book
+from books.models import Book, Comment, Thread
 
 User = get_user_model()
 
@@ -76,3 +76,52 @@ class UrlMaintainabilityTests(TestCase):
         self.assertRedirects(
             self.client.post(f'/library/{book.pk}/delete/'), '/library/', fetch_redirect_response=False,
         )
+
+
+class HttpMethodTests(TestCase):
+    """NF603 HTTP Method 허용"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user('reader', password='pw-for-tests-1')
+        cls.book = Book.objects.create(user=cls.user, title='데미안', description='d', rating=9, author='a')
+        cls.thread = Thread.objects.create(user=cls.user, book=cls.book, title='t', content='c', reading_date='2026-01-01')
+        cls.comment = Comment.objects.create(thread=cls.thread, user=cls.user, content='c')
+
+    def routes(self):
+        safe, form, post = {'get', 'head'}, {'get', 'head', 'post'}, {'post'}
+        return [
+            (reverse('accounts:login'), form),
+            (reverse('accounts:logout'), post),
+            (reverse('accounts:signup'), form),
+            (reverse('accounts:profile', args=['reader']), safe),
+            (reverse('accounts:follow', args=['reader']), post),
+            (reverse('accounts:update'), form),
+            (reverse('accounts:delete'), post),
+            (reverse('accounts:change_password'), form),
+            (reverse('books:index'), safe),
+            (reverse('books:create'), form),
+            (reverse('books:detail', args=[self.book.pk]), safe),
+            (reverse('books:update', args=[self.book.pk]), form),
+            (reverse('books:delete', args=[self.book.pk]), post),
+            (reverse('books:thread_create', args=[self.book.pk]), form),
+            (reverse('books:thread_detail', args=[self.thread.pk]), safe),
+            (reverse('books:thread_update', args=[self.thread.pk]), form),
+            (reverse('books:thread_delete', args=[self.thread.pk]), post),
+            (reverse('books:like', args=[self.thread.pk]), post),
+            (reverse('books:comment_create', args=[self.thread.pk]), post),
+            (reverse('books:comment_delete', args=[self.thread.pk, self.comment.pk]), post),
+        ]
+
+    def assert_disallowed_methods_return_405(self):
+        for url, allowed in self.routes():
+            for method in {'get', 'head', 'post', 'put', 'patch', 'delete'} - allowed:
+                with self.subTest(url=url, method=method):
+                    self.assertEqual(getattr(self.client, method)(url).status_code, 405)
+
+    def test_disallowed_methods_return_405_for_anonymous_user(self):
+        self.assert_disallowed_methods_return_405()
+
+    def test_disallowed_methods_return_405_for_authenticated_user(self):
+        self.client.force_login(self.user)
+        self.assert_disallowed_methods_return_405()

@@ -88,8 +88,8 @@ def follow(request, username):
     return redirect('accounts:profile', person.username)
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def update(request):
     if request.method == 'POST':
         form = CustomUserChangeForm(
@@ -119,8 +119,8 @@ def delete(request):
     return redirect('books:index')
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def change_password(request):
     if request.method == 'POST':
         form = CustomPasswordChangeForm(request.user, request.POST)

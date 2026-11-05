@@ -33,8 +33,8 @@ def index(request):
     return render(request, 'books/index.html', context)
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def create(request):
     if request.method == 'POST':
         form = BookForm(request.POST)
@@ -66,8 +66,8 @@ def detail(request, book_pk):
     return render(request, 'books/detail.html', context)
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def update(request, book_pk):
     book = get_object_or_404(Book, pk=book_pk)
 
@@ -104,8 +104,8 @@ def delete(request, book_pk):
     return redirect('books:index')
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def thread_create(request, book_pk):
     book = get_object_or_404(Book, pk=book_pk)
 
@@ -145,8 +145,8 @@ def thread_detail(request, thread_pk):
     return render_thread_detail(request, thread)
 
 
-@login_required
 @require_http_methods(['GET', 'POST'])
+@login_required
 def thread_update(request, thread_pk):
     thread = get_object_or_404(Thread, pk=thread_pk)
 
