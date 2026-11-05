@@ -1,7 +1,12 @@
+from io import BytesIO
+from tempfile import TemporaryDirectory
+
 from django.contrib.auth import SESSION_KEY, get_user_model
 from django.contrib.auth.models import AbstractUser
-from django.test import TestCase
-from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
+from django.urls import reverse, reverse_lazy
+from PIL import Image
 
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
@@ -136,3 +141,55 @@ class LogoutViewTests(TestCase):
 
     def test_logout_button_is_hidden_from_anonymous_user(self):
         self.assertNotContains(self.client.get(reverse('books:index')), self.url)
+
+
+def png_upload(name='profile.png'):
+    buffer = BytesIO()
+    Image.new('RGB', (2, 2), 'green').save(buffer, format='PNG')
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type='image/png')
+
+
+class SignupViewTests(TestCase):
+    """F609 signup"""
+
+    url = reverse_lazy('accounts:signup')
+
+    def signup_data(self, **overrides):
+        data = {
+            'username': 'newbie', 'password1': 'long-enough-pw-1', 'password2': 'long-enough-pw-1',
+            'email': 'newbie@example.com', 'last_name': '이', 'first_name': '새싹',
+            'gender': User.Gender.MALE, 'age': 20,
+            'weekly_reading_time': 3, 'yearly_reading_count': 12,
+        }
+        data.update(overrides)
+        return data
+
+    def test_get_renders_multipart_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'enctype="multipart/form-data"')
+
+    def test_valid_data_creates_user_logs_in_and_redirects_to_main(self):
+        with TemporaryDirectory() as media, override_settings(MEDIA_ROOT=media):
+            response = self.client.post(self.url, self.signup_data(profile_image=png_upload()))
+            self.assertRedirects(response, reverse('books:index'))
+            user = User.objects.get(username='newbie')
+            self.assertEqual(int(self.client.session[SESSION_KEY]), user.pk)
+            self.assertEqual(user.yearly_reading_count, 12)
+            self.assertTrue(user.profile_image.name.startswith('profiles/'))
+
+    def test_invalid_data_shows_error_and_creates_nothing(self):
+        response = self.client.post(self.url, self.signup_data(password2='different-pw-1'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'text-danger')
+        self.assertFalse(User.objects.exists())
+
+    def test_non_image_profile_file_is_rejected(self):
+        fake = SimpleUploadedFile('profile.png', b'not an image', content_type='image/png')
+        response = self.client.post(self.url, self.signup_data(profile_image=fake))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.exists())
+
+    def test_authenticated_user_is_sent_to_main(self):
+        self.client.force_login(make_user())
+        self.assertRedirects(self.client.get(self.url), reverse('books:index'))
