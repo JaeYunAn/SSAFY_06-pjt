@@ -45,5 +45,15 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // AI 호출로 응답이 늦어지는 폼의 중복 제출을 막는다.
+    document.querySelectorAll('form[data-loading-text]').forEach((form) => {
+      form.addEventListener('submit', () => {
+        const button = form.querySelector('button[type="submit"]');
+        button.disabled = true;
+        button.textContent = form.dataset.loadingText;
+      });
+    });
+  </script>
 </body>
 </html>

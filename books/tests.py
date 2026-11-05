@@ -1,4 +1,6 @@
 from datetime import date
+from unittest import addModuleCleanup
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -9,6 +11,13 @@ from .forms import BookForm, ThreadForm
 from .models import Book, Thread
 
 User = get_user_model()
+
+
+def setUpModule():
+    # 뷰 테스트가 실제 외부 API를 호출하지 않도록 서비스 함수를 대체한다.
+    patcher = patch('books.services.update_author_info', return_value=True)
+    patcher.start()
+    addModuleCleanup(patcher.stop)
 
 
 def make_user(username='reader'):
@@ -476,3 +485,56 @@ class LikeViewTests(TestCase):
 
     def test_button_is_hidden_from_anonymous_user(self):
         self.assertNotContains(self.client.get(self.detail_url), self.url)
+
+
+class AuthorInfoViewTests(TestCase):
+    """F625 정보 생성 및 저장"""
+
+    NOTICE = '작가 대표작과 작가 정보는 AI가 생성한 정보로, 정확하지 않을 수 있습니다.'
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def book_data(self, **overrides):
+        return {'title': '데미안', 'description': '설명', 'rating': 9, 'author': '헤르만 헤세', **overrides}
+
+    def test_create_requests_author_info(self):
+        with patch('books.services.update_author_info', return_value=True) as mock_update:
+            self.client.post(reverse('books:create'), self.book_data())
+        mock_update.assert_called_once_with(Book.objects.get())
+
+    def test_create_keeps_book_and_warns_when_ai_fails(self):
+        with patch('books.services.update_author_info', return_value=False):
+            response = self.client.post(reverse('books:create'), self.book_data(), follow=True)
+        self.assertEqual(Book.objects.count(), 1)
+        self.assertContains(response, '작가 정보를 불러오지 못했습니다.')
+
+    def test_update_regenerates_only_when_author_changes(self):
+        book = make_book(self.user)
+        url = reverse('books:update', args=[book.pk])
+        with patch('books.services.update_author_info', return_value=True) as mock_update:
+            self.client.post(url, self.book_data(description='설명만 변경'))
+            mock_update.assert_not_called()
+            self.client.post(url, self.book_data(author='어니스트 헤밍웨이'))
+            mock_update.assert_called_once()
+
+    def test_detail_shows_author_info_with_notice(self):
+        book = make_book(
+            self.user, author_info='독일계 스위스 작가', author_works='데미안, 싯다르타',
+            author_image_url='https://img.example/hesse.jpg',
+        )
+        response = self.client.get(reverse('books:detail', args=[book.pk]))
+        for text in ('독일계 스위스 작가', '데미안, 싯다르타', 'https://img.example/hesse.jpg', self.NOTICE):
+            self.assertContains(response, text)
+
+    def test_detail_hides_section_without_author_info(self):
+        response = self.client.get(reverse('books:detail', args=[make_book(self.user).pk]))
+        self.assertNotContains(response, self.NOTICE)
+
+    def test_form_does_not_expose_generated_fields(self):
+        for name in ('author_info', 'author_works', 'author_image_url'):
+            self.assertNotIn(name, BookForm().fields)

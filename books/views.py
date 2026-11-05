@@ -1,10 +1,14 @@
+from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_safe, require_POST, require_http_methods
 from django.core.exceptions import PermissionDenied
 
+from . import services
 from .models import Book, Thread
 from .forms import BookForm, ThreadForm
+
+AUTHOR_INFO_FAILED_MESSAGE = '작가 정보를 불러오지 못했습니다. 도서는 정상적으로 저장되었습니다.'
 
 
 @require_safe
@@ -26,6 +30,8 @@ def create(request):
             book = form.save(commit=False)
             book.user = request.user
             book.save()
+            if not services.update_author_info(book):
+                messages.warning(request, AUTHOR_INFO_FAILED_MESSAGE)
             return redirect('books:detail', book.pk)
     else:
         form = BookForm()
@@ -60,6 +66,9 @@ def update(request, book_pk):
         form = BookForm(request.POST, instance=book)
         if form.is_valid():
             form.save()
+            # 저자가 바뀌면 이전 저자의 정보가 남지 않도록 다시 생성한다.
+            if 'author' in form.changed_data and not services.update_author_info(book):
+                messages.warning(request, AUTHOR_INFO_FAILED_MESSAGE)
             return redirect('books:detail', book.pk)
     else:
         form = BookForm(instance=book)

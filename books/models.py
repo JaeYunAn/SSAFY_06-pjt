@@ -17,6 +17,9 @@ class Book(models.Model):
         help_text='0 이상 10 이하로 입력합니다.',
     )
     author = models.CharField('저자', max_length=100)
+    author_info = models.TextField('작가 정보', blank=True)
+    author_works = models.TextField('작가 대표작', blank=True)
+    author_image_url = models.URLField('작가 사진 URL', max_length=500, blank=True)
 
     class Meta:
         ordering = ['-pk']
