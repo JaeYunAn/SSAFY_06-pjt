@@ -4,10 +4,14 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import PasswordChangeForm
 from django.views.decorators.http import require_http_methods, require_POST, require_safe
 
-from .forms import CustomUserChangeForm, CustomUserCreationForm, LoginForm
+from .forms import (
+    CustomPasswordChangeForm,
+    CustomUserChangeForm,
+    CustomUserCreationForm,
+    LoginForm,
+)
 
 User = get_user_model()
 
@@ -119,13 +123,14 @@ def delete(request):
 @require_http_methods(['GET', 'POST'])
 def change_password(request):
     if request.method == 'POST':
-        form = PasswordChangeForm(request.user, request.POST)
+        form = CustomPasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             user = form.save()
+            # 세션 해시를 갱신해야 비밀번호 변경 후 로그아웃되지 않는다.
             update_session_auth_hash(request, user)
-            return redirect('accounts:profile', request.user.username)
+            return redirect('books:index')
     else:
-        form = PasswordChangeForm(request.user)
+        form = CustomPasswordChangeForm(request.user)
 
     context = {
         'form': form,

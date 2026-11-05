@@ -377,3 +377,47 @@ class DeleteViewTests(TestCase):
         response = self.client.post(self.url)
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
         self.assertTrue(User.objects.filter(pk=self.user.pk).exists())
+
+
+class ChangePasswordViewTests(TestCase):
+    """F614 change_password"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.url = reverse('accounts:change_password')
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def test_get_renders_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="old_password"')
+
+    def test_valid_post_changes_password_keeps_session_and_redirects_to_main(self):
+        response = self.client.post(self.url, {
+            'old_password': PASSWORD,
+            'new_password1': 'brand-new-pw-2',
+            'new_password2': 'brand-new-pw-2',
+        })
+        self.assertRedirects(response, reverse('books:index'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('brand-new-pw-2'))
+        self.assertTrue(self.client.get(reverse('books:index')).wsgi_request.user.is_authenticated)
+
+    def test_wrong_old_password_shows_error(self):
+        response = self.client.post(self.url, {
+            'old_password': 'wrong',
+            'new_password1': 'brand-new-pw-2',
+            'new_password2': 'brand-new-pw-2',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'text-danger')
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(PASSWORD))
+
+    def test_anonymous_user_is_sent_to_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
