@@ -245,3 +245,52 @@ class ProfileViewTests(TestCase):
 
     def test_unknown_user_returns_404(self):
         self.assertEqual(self.client.get(reverse('accounts:profile', args=['nobody'])).status_code, 404)
+
+
+class FollowViewTests(TestCase):
+    """F611 follow"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.reader = make_user('reader')
+        cls.writer = make_user('writer')
+        cls.url = reverse('accounts:follow', args=['writer'])
+        cls.profile_url = reverse('accounts:profile', args=['writer'])
+
+    def test_post_toggles_follow_and_returns_to_profile(self):
+        self.client.force_login(self.reader)
+        response = self.client.post(self.url)
+        self.assertRedirects(response, self.profile_url)
+        self.assertIn(self.writer, self.reader.followings.all())
+
+        response = self.client.post(self.url)
+        self.assertRedirects(response, self.profile_url)
+        self.assertNotIn(self.writer, self.reader.followings.all())
+
+    def test_user_cannot_follow_self(self):
+        self.client.force_login(self.writer)
+        self.client.post(self.url)
+        self.assertFalse(self.writer.followings.exists())
+
+    def test_get_is_not_allowed(self):
+        self.client.force_login(self.reader)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_anonymous_post_is_sent_to_login(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+        self.assertFalse(self.writer.followers.exists())
+
+    def test_button_label_depends_on_follow_state(self):
+        self.client.force_login(self.reader)
+        response = self.client.get(self.profile_url)
+        self.assertContains(response, '>팔로우<')
+        self.assertNotContains(response, '언팔로우')
+
+        self.reader.followings.add(self.writer)
+        self.assertContains(self.client.get(self.profile_url), '언팔로우')
+
+    def test_button_is_hidden_from_anonymous_user_and_on_own_profile(self):
+        self.assertNotContains(self.client.get(self.profile_url), self.url)
+        self.client.force_login(self.writer)
+        self.assertNotContains(self.client.get(self.profile_url), self.url)

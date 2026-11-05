@@ -65,8 +65,23 @@ def profile(request, username):
     context = {
         'person': person,
         'threads': person.thread_set.select_related('book'),
+        'is_following': person.followers.filter(pk=request.user.pk).exists(),
     }
     return render(request, 'accounts/profile.html', context)
+
+
+@require_POST
+@login_required
+def follow(request, username):
+    person = get_object_or_404(User, username=username)
+
+    if person != request.user:
+        if person.followers.filter(pk=request.user.pk).exists():
+            person.followers.remove(request.user)
+        else:
+            person.followers.add(request.user)
+
+    return redirect('accounts:profile', person.username)
 
 
 @login_required

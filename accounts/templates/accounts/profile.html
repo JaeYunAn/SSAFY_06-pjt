@@ -42,6 +42,16 @@
       </form>
     </div>
     <hr>
+  {% elif request.user.is_authenticated %}
+    <form action="{% url 'accounts:follow' person.username %}" method="POST">
+      {% csrf_token %}
+      {% if is_following %}
+        <button type="submit" class="btn btn-outline-success btn-sm">언팔로우</button>
+      {% else %}
+        <button type="submit" class="btn btn-success btn-sm">팔로우</button>
+      {% endif %}
+    </form>
+    <hr>
   {% endif %}
 
   <h2 class="h5">작성한 쓰레드</h2>
