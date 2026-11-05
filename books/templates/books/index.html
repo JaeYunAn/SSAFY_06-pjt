@@ -1,7 +1,19 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1 class="h3 mb-3">메인 페이지</h1>
+  <h1 class="h3 mb-2">메인 페이지</h1>
+
+  <ul class="nav nav-pills small mb-3">
+    <li class="nav-item">
+      <a class="nav-link py-1 px-2{% if not selected_category %} active{% endif %}" href="{% url 'books:index' %}">전체</a>
+    </li>
+    {% for category in categories %}
+      <li class="nav-item">
+        <a class="nav-link py-1 px-2{% if category == selected_category %} active{% endif %}"
+           href="{% url 'books:index' %}?category={{ category.pk }}">{{ category.name }}</a>
+      </li>
+    {% endfor %}
+  </ul>
 
   <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
     {% for book in books %}

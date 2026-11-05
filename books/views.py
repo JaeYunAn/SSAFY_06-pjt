@@ -5,7 +5,7 @@ from django.views.decorators.http import require_safe, require_POST, require_htt
 from django.core.exceptions import PermissionDenied
 
 from . import services
-from .models import Book, Comment, Thread
+from .models import Book, Category, Comment, Thread
 from .forms import BookForm, CommentForm, ThreadForm
 
 AUTHOR_INFO_FAILED_MESSAGE = '작가 정보를 불러오지 못했습니다. 도서는 정상적으로 저장되었습니다.'
@@ -14,10 +14,21 @@ COVER_FAILED_MESSAGE = '커버 이미지를 생성하지 못했습니다. 쓰레
 
 @require_safe
 def index(request):
-    books = Book.objects.select_related('user')
+    books = Book.objects.select_related('user', 'category')
+    categories = Category.objects.all()
+
+    # 잘못된 쿼리 값은 필터 없이 전체 목록으로 처리한다.
+    selected_category = None
+    category_pk = request.GET.get('category', '')
+    if category_pk.isdecimal():
+        selected_category = categories.filter(pk=category_pk).first()
+    if selected_category:
+        books = books.filter(category=selected_category)
 
     context = {
         'books': books,
+        'categories': categories,
+        'selected_category': selected_category,
     }
     return render(request, 'books/index.html', context)
 

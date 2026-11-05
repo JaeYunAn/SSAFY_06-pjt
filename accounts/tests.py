@@ -8,7 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse, reverse_lazy
 from PIL import Image
 
-from books.models import Book, Thread
+from books.models import Book, Category, Thread
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
 User = get_user_model()
@@ -421,3 +421,43 @@ class ChangePasswordViewTests(TestCase):
         self.client.logout()
         response = self.client.get(self.url)
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+
+class InterestedGenreTests(TestCase):
+    """F628 카테고리 (사용자 선호 장르)"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.novel = Category.objects.get(name='소설/시/희곡')
+        cls.science = Category.objects.get(name='과학')
+
+    def test_signup_saves_multiple_genres(self):
+        response = self.client.post(reverse('accounts:signup'), {
+            'username': 'newbie', 'password1': 'long-enough-pw-1', 'password2': 'long-enough-pw-1',
+            'weekly_reading_time': 0, 'yearly_reading_count': 0,
+            'interested_genres': [self.novel.pk, self.science.pk],
+        })
+        self.assertRedirects(response, reverse('books:index'))
+        user = User.objects.get(username='newbie')
+        self.assertCountEqual(user.interested_genres.all(), [self.novel, self.science])
+
+    def test_signup_page_renders_checkboxes(self):
+        response = self.client.get(reverse('accounts:signup'))
+        self.assertContains(response, 'type="checkbox" name="interested_genres"', count=Category.objects.count())
+
+    def test_update_changes_genres(self):
+        user = make_user()
+        user.interested_genres.add(self.novel)
+        self.client.force_login(user)
+        self.client.post(reverse('accounts:update'), {
+            'username': user.username, 'weekly_reading_time': 0, 'yearly_reading_count': 0,
+            'interested_genres': [self.science.pk],
+        })
+        self.assertCountEqual(user.interested_genres.all(), [self.science])
+
+    def test_profile_shows_selected_genres(self):
+        user = make_user()
+        user.interested_genres.add(self.novel)
+        response = self.client.get(reverse('accounts:profile', args=[user.username]))
+        self.assertContains(response, '소설/시/희곡')
+        self.assertNotContains(response, '과학')

@@ -25,6 +25,14 @@
     <dd class="col-sm-9">{{ person.weekly_reading_time }}시간</dd>
     <dt class="col-sm-3">연간 독서량</dt>
     <dd class="col-sm-9">{{ person.yearly_reading_count }}권</dd>
+    <dt class="col-sm-3">관심 장르</dt>
+    <dd class="col-sm-9">
+      {% for genre in person.interested_genres.all %}
+        <span class="badge text-bg-light border">{{ genre.name }}</span>
+      {% empty %}
+        -
+      {% endfor %}
+    </dd>
   </dl>
 
   <hr>

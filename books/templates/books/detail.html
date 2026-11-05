@@ -4,7 +4,12 @@
 
 {% block content %}
   <h1 class="h3">도서 상세 페이지</h1>
-  <h2 class="h4">{{ book.title }}</h2>
+  <div class="d-flex justify-content-between align-items-start">
+    <h2 class="h4">{{ book.title }}</h2>
+    {% if book.category %}
+      <span class="badge text-bg-light border">{{ book.category.name }}</span>
+    {% endif %}
+  </div>
   <p class="small">{{ book.description|linebreaksbr }}</p>
   <p class="mb-1">회원 리뷰 평점 : {{ book.rating|floatformat:"-1" }} / 10</p>
   <p>{{ book.author }}</p>

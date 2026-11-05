@@ -8,7 +8,7 @@ from .models import Book, Comment, Thread
 class BookForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Book
-        fields = ('title', 'description', 'rating', 'author')
+        fields = ('title', 'description', 'rating', 'author', 'category')
         widgets = {
             'description': forms.Textarea(attrs={'rows': 6}),
             'rating': forms.NumberInput(attrs={'min': 0, 'max': 10, 'step': 0.1}),

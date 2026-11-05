@@ -19,3 +19,9 @@ class User(AbstractUser):
         blank=True,
         verbose_name='팔로잉',
     )
+    interested_genres = models.ManyToManyField(
+        'books.Category',
+        related_name='interested_users',
+        blank=True,
+        verbose_name='관심 장르',
+    )

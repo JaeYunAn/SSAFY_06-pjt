@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse, reverse_lazy
 
 from .forms import BookForm, ThreadForm
-from .models import Book, Comment, Thread
+from .models import Book, Category, Comment, Thread
 
 User = get_user_model()
 
@@ -23,6 +23,10 @@ def setUpModule():
 
 def make_user(username='reader'):
     return User.objects.create_user(username, password='pw-for-tests-1')
+
+
+def first_category_pk():
+    return Category.objects.first().pk
 
 
 def make_book(user, **fields):
@@ -54,9 +58,9 @@ class BookModelTests(TestCase):
     def test_rating_must_be_between_0_and_10(self):
         for rating in (-0.5, 10.5):
             with self.assertRaises(ValidationError):
-                Book(user=self.user, title='t', description='d', author='a', rating=rating).full_clean()
+                Book(user=self.user, title='t', description='d', author='a', rating=rating).full_clean(exclude=['category'])
         for rating in (0, 10):
-            Book(user=self.user, title='t', description='d', author='a', rating=rating).full_clean()
+            Book(user=self.user, title='t', description='d', author='a', rating=rating).full_clean(exclude=['category'])
 
     def test_newest_book_comes_first(self):
         first, second = make_book(self.user), make_book(self.user)
@@ -99,7 +103,10 @@ class BookThreadFormTests(TestCase):
     """F606 books Form Class"""
 
     def test_book_form_accepts_valid_data(self):
-        form = BookForm({'title': '데미안', 'description': '설명', 'rating': 9.5, 'author': '헤르만 헤세'})
+        form = BookForm({
+            'title': '데미안', 'description': '설명', 'rating': 9.5,
+            'author': '헤르만 헤세', 'category': first_category_pk(),
+        })
         self.assertTrue(form.is_valid())
 
     def test_book_form_rejects_invalid_data(self):
@@ -155,7 +162,10 @@ class CreateViewTests(TestCase):
         cls.user = make_user()
 
     def data(self, **overrides):
-        return {'title': '데미안', 'description': '설명', 'rating': 9, 'author': '헤르만 헤세', **overrides}
+        return {
+            'title': '데미안', 'description': '설명', 'rating': 9,
+            'author': '헤르만 헤세', 'category': first_category_pk(), **overrides,
+        }
 
     def test_get_renders_form_for_logged_in_user(self):
         self.client.force_login(self.user)
@@ -242,7 +252,10 @@ class UpdateViewTests(TestCase):
         cls.url = reverse('books:update', args=[cls.book.pk])
 
     def data(self, **overrides):
-        return {'title': '수정된 제목', 'description': '수정된 설명', 'rating': 7, 'author': '헤르만 헤세', **overrides}
+        return {
+            'title': '수정된 제목', 'description': '수정된 설명', 'rating': 7,
+            'author': '헤르만 헤세', 'category': first_category_pk(), **overrides,
+        }
 
     def test_get_prefills_previous_data(self):
         self.client.force_login(self.owner)
@@ -501,7 +514,10 @@ class AuthorInfoViewTests(TestCase):
         self.client.force_login(self.user)
 
     def book_data(self, **overrides):
-        return {'title': '데미안', 'description': '설명', 'rating': 9, 'author': '헤르만 헤세', **overrides}
+        return {
+            'title': '데미안', 'description': '설명', 'rating': 9,
+            'author': '헤르만 헤세', 'category': first_category_pk(), **overrides,
+        }
 
     def test_create_requests_author_info(self):
         with patch('books.services.update_author_info', return_value=True) as mock_update:
@@ -667,3 +683,66 @@ class CommentViewTests(TestCase):
         comment = self.make_comment(self.other)
         self.client.force_login(self.other)
         self.assertEqual(self.client.get(self.delete_url(comment)).status_code, 405)
+
+
+class CategoryTests(TestCase):
+    """F628 카테고리"""
+
+    GENRES = ['소설/시/희곡', '경제/경영', '자기계발', '인문/교양', '취미/실용', '어린이/청소년', '과학']
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.novel = Category.objects.get(name='소설/시/희곡')
+        cls.science = Category.objects.get(name='과학')
+        cls.novel_book = make_book(cls.user, title='데미안', category=cls.novel)
+        cls.science_book = make_book(cls.user, title='코스모스', category=cls.science)
+
+    def test_migration_creates_required_genres(self):
+        self.assertEqual(list(Category.objects.values_list('name', flat=True)), self.GENRES)
+
+    def test_book_requires_category_on_registration(self):
+        form = BookForm({'title': 't', 'description': 'd', 'rating': 5, 'author': 'a'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('category', form.errors)
+
+    def test_book_is_saved_with_selected_category(self):
+        self.client.force_login(self.user)
+        self.client.post(reverse('books:create'), {
+            'title': '새 책', 'description': 'd', 'rating': 5, 'author': 'a', 'category': self.science.pk,
+        })
+        self.assertEqual(Book.objects.get(title='새 책').category, self.science)
+
+    def test_index_shows_all_books_and_filter_links(self):
+        response = self.client.get(reverse('books:index'))
+        for genre in self.GENRES:
+            self.assertContains(response, genre)
+        self.assertContains(response, '데미안')
+        self.assertContains(response, '코스모스')
+
+    def test_index_filters_by_category(self):
+        response = self.client.get(reverse('books:index'), {'category': self.science.pk})
+        self.assertContains(response, '코스모스')
+        self.assertNotContains(response, '데미안')
+
+    def test_index_shows_empty_message_for_category_without_books(self):
+        empty = Category.objects.get(name='경제/경영')
+        response = self.client.get(reverse('books:index'), {'category': empty.pk})
+        self.assertContains(response, '등록된 도서가 없습니다.')
+
+    def test_invalid_category_value_falls_back_to_all_books(self):
+        for value in ('abc', '-1', '99999', '9' * 40, ''):
+            response = self.client.get(reverse('books:index'), {'category': value})
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, '데미안')
+            self.assertContains(response, '코스모스')
+
+    def test_detail_shows_category(self):
+        response = self.client.get(reverse('books:detail', args=[self.novel_book.pk]))
+        self.assertContains(response, '소설/시/희곡')
+
+    def test_book_stays_when_category_is_deleted(self):
+        self.science.delete()
+        self.science_book.refresh_from_db()
+        self.assertIsNone(self.science_book.category)
+        self.assertEqual(self.client.get(reverse('books:detail', args=[self.science_book.pk])).status_code, 200)

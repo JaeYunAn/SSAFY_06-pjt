@@ -3,6 +3,16 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
+class Category(models.Model):
+    name = models.CharField('장르', max_length=50, unique=True)
+
+    class Meta:
+        ordering = ['pk']
+
+    def __str__(self):
+        return self.name
+
+
 class Book(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -17,6 +27,13 @@ class Book(models.Model):
         help_text='0 이상 10 이하로 입력합니다.',
     )
     author = models.CharField('저자', max_length=100)
+    category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='books',
+        verbose_name='카테고리',
+    )
     author_info = models.TextField('작가 정보', blank=True)
     author_works = models.TextField('작가 대표작', blank=True)
     author_image_url = models.URLField('작가 사진 URL', max_length=500, blank=True)

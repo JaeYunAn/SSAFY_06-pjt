@@ -10,8 +10,8 @@ class CustomUserAdmin(UserAdmin):
         ('독서 정보', {
             'fields': (
                 'gender', 'age', 'weekly_reading_time',
-                'yearly_reading_count', 'profile_image', 'followings',
+                'yearly_reading_count', 'profile_image', 'followings', 'interested_genres',
             ),
         }),
     )
-    filter_horizontal = UserAdmin.filter_horizontal + ('followings',)
+    filter_horizontal = UserAdmin.filter_horizontal + ('followings', 'interested_genres')

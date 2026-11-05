@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import (
     AuthenticationForm,
@@ -23,6 +24,7 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
     field_order = (
         'username', 'password1', 'password2', 'email', 'last_name', 'first_name',
         'gender', 'age', 'weekly_reading_time', 'yearly_reading_count', 'profile_image',
+        'interested_genres',
     )
 
     class Meta(UserCreationForm.Meta):
@@ -30,9 +32,10 @@ class CustomUserCreationForm(BootstrapFormMixin, UserCreationForm):
         fields = (
             'username', 'email', 'last_name', 'first_name',
             'gender', 'age', 'weekly_reading_time',
-            'yearly_reading_count', 'profile_image',
+            'yearly_reading_count', 'profile_image', 'interested_genres',
         )
         labels = {'username': '아이디'}
+        widgets = {'interested_genres': forms.CheckboxSelectMultiple}
 
 
 class CustomUserChangeForm(BootstrapFormMixin, UserChangeForm):
@@ -44,6 +47,7 @@ class CustomUserChangeForm(BootstrapFormMixin, UserChangeForm):
         fields = (
             'username', 'last_name', 'first_name', 'email',
             'gender', 'age', 'weekly_reading_time',
-            'yearly_reading_count', 'profile_image',
+            'yearly_reading_count', 'profile_image', 'interested_genres',
         )
         labels = {'username': '아이디'}
+        widgets = {'interested_genres': forms.CheckboxSelectMultiple}
