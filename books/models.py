@@ -53,3 +53,20 @@ class Thread(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Comment(models.Model):
+    thread = models.ForeignKey(Thread, on_delete=models.CASCADE, verbose_name='쓰레드')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='작성자',
+    )
+    content = models.CharField('내용', max_length=200)
+    created_at = models.DateTimeField('작성 시각', auto_now_add=True)
+
+    class Meta:
+        ordering = ['pk']
+
+    def __str__(self):
+        return self.content

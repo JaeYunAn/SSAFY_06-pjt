@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse, reverse_lazy
 
 from .forms import BookForm, ThreadForm
-from .models import Book, Thread
+from .models import Book, Comment, Thread
 
 User = get_user_model()
 
@@ -586,3 +586,84 @@ class ThreadCoverViewTests(TestCase):
 
     def test_form_does_not_expose_cover_field(self):
         self.assertNotIn('cover_image', ThreadForm().fields)
+
+
+class CommentViewTests(TestCase):
+    """F627 쓰레드 댓글"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.writer = make_user('writer')
+        cls.other = make_user('other')
+        cls.thread = make_thread(cls.writer, make_book(cls.writer))
+        cls.detail_url = reverse('books:thread_detail', args=[cls.thread.pk])
+        cls.create_url = reverse('books:comment_create', args=[cls.thread.pk])
+
+    def delete_url(self, comment):
+        return reverse('books:comment_delete', args=[self.thread.pk, comment.pk])
+
+    def make_comment(self, user=None, content='공감합니다'):
+        return Comment.objects.create(thread=self.thread, user=user or self.writer, content=content)
+
+    def test_valid_post_saves_with_current_user_and_returns_to_thread(self):
+        self.client.force_login(self.other)
+        response = self.client.post(self.create_url, {'content': '공감합니다'})
+        self.assertRedirects(response, self.detail_url)
+        comment = Comment.objects.get()
+        self.assertEqual((comment.user, comment.thread, comment.content), (self.other, self.thread, '공감합니다'))
+
+    def test_blank_comment_shows_error_and_saves_nothing(self):
+        self.client.force_login(self.other)
+        for content in ('', '   '):
+            response = self.client.post(self.create_url, {'content': content})
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, 'text-danger')
+        self.assertFalse(Comment.objects.exists())
+
+    def test_too_long_comment_is_rejected(self):
+        self.client.force_login(self.other)
+        self.client.post(self.create_url, {'content': 'x' * 201})
+        self.assertFalse(Comment.objects.exists())
+
+    def test_anonymous_user_cannot_comment_and_sees_no_form(self):
+        response = self.client.post(self.create_url, {'content': '공감합니다'})
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.create_url}")
+        self.assertFalse(Comment.objects.exists())
+        self.assertNotContains(self.client.get(self.detail_url), self.create_url)
+
+    def test_list_links_to_author_profile(self):
+        self.make_comment(self.other)
+        response = self.client.get(self.detail_url)
+        self.assertContains(response, '공감합니다')
+        self.assertContains(response, reverse('accounts:profile', args=['other']))
+
+    def test_delete_button_is_shown_only_to_comment_author(self):
+        comment = self.make_comment(self.other)
+        self.assertNotContains(self.client.get(self.detail_url), self.delete_url(comment))
+        self.client.force_login(self.writer)
+        self.assertNotContains(self.client.get(self.detail_url), self.delete_url(comment))
+        self.client.force_login(self.other)
+        self.assertContains(self.client.get(self.detail_url), self.delete_url(comment))
+
+    def test_author_can_delete_but_others_cannot(self):
+        comment = self.make_comment(self.other)
+        self.client.force_login(self.writer)
+        self.assertEqual(self.client.post(self.delete_url(comment)).status_code, 403)
+        self.assertTrue(Comment.objects.exists())
+
+        self.client.force_login(self.other)
+        self.assertRedirects(self.client.post(self.delete_url(comment)), self.detail_url)
+        self.assertFalse(Comment.objects.exists())
+
+    def test_comment_cannot_be_deleted_through_another_thread(self):
+        comment = self.make_comment(self.other)
+        another = make_thread(self.writer, self.thread.book)
+        self.client.force_login(self.other)
+        response = self.client.post(reverse('books:comment_delete', args=[another.pk, comment.pk]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Comment.objects.exists())
+
+    def test_delete_does_not_allow_get(self):
+        comment = self.make_comment(self.other)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.delete_url(comment)).status_code, 405)

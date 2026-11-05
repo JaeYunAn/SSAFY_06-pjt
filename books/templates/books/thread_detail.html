@@ -42,6 +42,41 @@
       {% endif %}
 
       <hr>
+      <h2 class="h5">댓글</h2>
+      <ul class="list-unstyled small">
+        {% for comment in comments %}
+          <li class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span>{{ comment.content }}</span>
+            <span class="text-body-secondary">작성자:
+              <a href="{% url 'accounts:profile' comment.user.username %}">{{ comment.user.username }}</a>
+            </span>
+            {% if request.user == comment.user %}
+              <form action="{% url 'books:comment_delete' thread.pk comment.pk %}" method="POST" class="m-0">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm py-0">삭제</button>
+              </form>
+            {% endif %}
+          </li>
+        {% empty %}
+          <li class="text-body-secondary">작성된 댓글이 없습니다.</li>
+        {% endfor %}
+      </ul>
+
+      {% if request.user.is_authenticated %}
+        <h3 class="h6">댓글 작성</h3>
+        <form action="{% url 'books:comment_create' thread.pk %}" method="POST">
+          {% csrf_token %}
+          <div class="input-group" style="max-width: 480px;">
+            {{ comment_form.content }}
+            <button type="submit" class="btn btn-outline-secondary">전송</button>
+          </div>
+          {% for error in comment_form.content.errors %}
+            <div class="text-danger small mt-1">{{ error }}</div>
+          {% endfor %}
+        </form>
+      {% endif %}
+
+      <hr>
       <a class="btn btn-secondary btn-sm" href="{% url 'books:detail' thread.book.pk %}">BACK</a>
     </div>
   </div>

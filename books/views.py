@@ -5,8 +5,8 @@ from django.views.decorators.http import require_safe, require_POST, require_htt
 from django.core.exceptions import PermissionDenied
 
 from . import services
-from .models import Book, Thread
-from .forms import BookForm, ThreadForm
+from .models import Book, Comment, Thread
+from .forms import BookForm, CommentForm, ThreadForm
 
 AUTHOR_INFO_FAILED_MESSAGE = '작가 정보를 불러오지 못했습니다. 도서는 정상적으로 저장되었습니다.'
 COVER_FAILED_MESSAGE = '커버 이미지를 생성하지 못했습니다. 쓰레드는 정상적으로 저장되었습니다.'
@@ -118,15 +118,20 @@ def thread_create(request, book_pk):
     return render(request, 'books/thread_create.html', context)
 
 
-@require_safe
-def thread_detail(request, thread_pk):
-    thread = get_object_or_404(Thread.objects.select_related('book', 'user'), pk=thread_pk)
-
+def render_thread_detail(request, thread, comment_form=None):
     context = {
         'thread': thread,
         'is_liked': thread.like_users.filter(pk=request.user.pk).exists(),
+        'comments': thread.comment_set.select_related('user'),
+        'comment_form': comment_form or CommentForm(),
     }
     return render(request, 'books/thread_detail.html', context)
+
+
+@require_safe
+def thread_detail(request, thread_pk):
+    thread = get_object_or_404(Thread.objects.select_related('book', 'user'), pk=thread_pk)
+    return render_thread_detail(request, thread)
 
 
 @login_required
@@ -176,3 +181,31 @@ def like(request, thread_pk):
         thread.like_users.add(request.user)
 
     return redirect('books:thread_detail', thread.pk)
+
+
+@require_POST
+@login_required
+def comment_create(request, thread_pk):
+    thread = get_object_or_404(Thread.objects.select_related('book', 'user'), pk=thread_pk)
+
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.thread = thread
+        comment.user = request.user
+        comment.save()
+        return redirect('books:thread_detail', thread.pk)
+
+    return render_thread_detail(request, thread, form)
+
+
+@require_POST
+@login_required
+def comment_delete(request, thread_pk, comment_pk):
+    comment = get_object_or_404(Comment, pk=comment_pk, thread_id=thread_pk)
+
+    if request.user != comment.user:
+        raise PermissionDenied
+
+    comment.delete()
+    return redirect('books:thread_detail', thread_pk)

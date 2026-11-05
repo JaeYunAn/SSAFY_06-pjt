@@ -2,7 +2,7 @@ from django import forms
 
 from mypjt.forms import BootstrapFormMixin
 
-from .models import Book, Thread
+from .models import Book, Comment, Thread
 
 
 class BookForm(BootstrapFormMixin, forms.ModelForm):
@@ -24,3 +24,9 @@ class ThreadForm(BootstrapFormMixin, forms.ModelForm):
             # type="date" 입력은 ISO 형식 값만 미리 채울 수 있다.
             'reading_date': forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'),
         }
+
+
+class CommentForm(BootstrapFormMixin, forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ('content',)
