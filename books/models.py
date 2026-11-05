@@ -1,16 +1,28 @@
+from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-from django.conf import settings
 
 class Book(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='작성자',
     )
-    title = models.CharField(max_length=50)
-    description = models.TextField()
-    rating = models.FloatField()
-    author = models.CharField(max_length=50)
+    title = models.CharField('도서 제목', max_length=200)
+    description = models.TextField('설명')
+    rating = models.FloatField(
+        '회원 리뷰 평점',
+        validators=[MinValueValidator(0), MaxValueValidator(10)],
+        help_text='0 이상 10 이하로 입력합니다.',
+    )
+    author = models.CharField('저자', max_length=100)
+
+    class Meta:
+        ordering = ['-pk']
+
+    def __str__(self):
+        return self.title
 
 
 class Thread(models.Model):
