@@ -112,3 +112,27 @@ class LoginViewTests(TestCase):
     def test_authenticated_user_is_sent_to_main(self):
         self.client.force_login(self.user)
         self.assertRedirects(self.client.get(self.url), reverse('books:index'))
+
+
+class LogoutViewTests(TestCase):
+    """F608 logout"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.url = reverse('accounts:logout')
+
+    def test_post_clears_session_and_redirects_to_main(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('books:index'))
+        self.assertNotIn(SESSION_KEY, self.client.session)
+
+    def test_get_is_not_allowed_even_for_anonymous_user(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertIn(SESSION_KEY, self.client.session)
+
+    def test_logout_button_is_hidden_from_anonymous_user(self):
+        self.assertNotContains(self.client.get(reverse('books:index')), self.url)
