@@ -294,3 +294,60 @@ class FollowViewTests(TestCase):
         self.assertNotContains(self.client.get(self.profile_url), self.url)
         self.client.force_login(self.writer)
         self.assertNotContains(self.client.get(self.profile_url), self.url)
+
+
+class UpdateViewTests(TestCase):
+    """F612 update"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user('reader', email='reader@example.com', age=20)
+        cls.other = make_user('other')
+        cls.url = reverse('accounts:update')
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+    def data(self, **overrides):
+        data = {
+            'username': 'reader', 'email': 'reader@example.com', 'last_name': '', 'first_name': '',
+            'gender': '', 'age': 21, 'weekly_reading_time': 5, 'yearly_reading_count': 10,
+        }
+        data.update(overrides)
+        return data
+
+    def test_get_prefills_data_and_hides_sensitive_fields(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, 'value="reader@example.com"')
+        for name in ('name="password"', 'name="is_staff"', 'name="is_superuser"', 'name="groups"'):
+            self.assertNotContains(response, name)
+        self.assertContains(response, reverse('accounts:change_password'))
+
+    def test_valid_post_updates_user_and_redirects_to_main(self):
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, reverse('books:index'))
+        self.user.refresh_from_db()
+        self.assertEqual((self.user.age, self.user.yearly_reading_count), (21, 10))
+
+    def test_post_cannot_escalate_privileges(self):
+        self.client.post(self.url, self.data(is_superuser='on', is_staff='on'))
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_superuser or self.user.is_staff)
+
+    def test_invalid_post_shows_error_and_keeps_data(self):
+        response = self.client.post(self.url, self.data(age=-5))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'text-danger')
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.age, 20)
+
+    def test_duplicate_username_does_not_leak_into_navbar(self):
+        response = self.client.post(self.url, self.data(username='other'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('accounts:profile', args=['reader']))
+        self.assertNotContains(response, reverse('accounts:profile', args=['other']))
+
+    def test_anonymous_user_is_sent_to_login(self):
+        self.client.logout()
+        response = self.client.get(self.url)
+        self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")

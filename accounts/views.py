@@ -95,7 +95,9 @@ def update(request):
         )
         if form.is_valid():
             form.save()
-            return redirect('accounts:profile', request.user.username)
+            return redirect('books:index')
+        # 검증 과정에서 변경된 메모리 값이 Navbar 등에 노출되지 않도록 되돌린다.
+        request.user.refresh_from_db()
     else:
         form = CustomUserChangeForm(instance=request.user)
 
