@@ -328,3 +328,40 @@ class ThreadCreateViewTests(TestCase):
         response = self.client.post(self.url, self.data())
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
         self.assertFalse(Thread.objects.exists())
+
+
+class ThreadDetailViewTests(TestCase):
+    """F621 thread_detail"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = make_user('owner')
+        cls.other = make_user('other')
+        cls.book = make_book(cls.owner)
+        cls.thread = make_thread(cls.owner, cls.book)
+        cls.url = reverse('books:thread_detail', args=[cls.thread.pk])
+
+    def test_shows_thread_fields_and_back_link(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        for text in ('내면의 거울', '깊은 감상', '2026년 10월 8일', reverse('books:detail', args=[self.book.pk])):
+            self.assertContains(response, text)
+
+    def test_content_is_escaped(self):
+        thread = make_thread(self.owner, self.book, content='<script>alert(1)</script>')
+        response = self.client.get(reverse('books:thread_detail', args=[thread.pk]))
+        self.assertNotContains(response, '<script>alert(1)</script>')
+
+    def test_owner_sees_update_and_delete(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse('books:thread_update', args=[self.thread.pk]))
+        self.assertContains(response, reverse('books:thread_delete', args=[self.thread.pk]))
+
+    def test_others_do_not_see_update_and_delete(self):
+        for login in (False, True):
+            if login:
+                self.client.force_login(self.other)
+            response = self.client.get(self.url)
+            self.assertNotContains(response, reverse('books:thread_update', args=[self.thread.pk]))
+            self.assertNotContains(response, reverse('books:thread_delete', args=[self.thread.pk]))

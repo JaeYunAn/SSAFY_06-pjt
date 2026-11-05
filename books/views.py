@@ -108,7 +108,7 @@ def thread_create(request, book_pk):
 
 @require_safe
 def thread_detail(request, thread_pk):
-    thread = get_object_or_404(Thread, pk=thread_pk)
+    thread = get_object_or_404(Thread.objects.select_related('book', 'user'), pk=thread_pk)
 
     context = {
         'thread': thread,

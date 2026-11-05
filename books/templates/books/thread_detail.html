@@ -1,25 +1,32 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ thread.title }} | ThRead{% endblock title %}
+
 {% block content %}
-  <h1>{{ thread.title }}</h1>
+  <div class="row justify-content-center">
+    <div class="col-lg-9">
+      <h1 class="h3">{{ thread.title }}</h1>
+      <p class="small">
+        <strong>도서:</strong> <a href="{% url 'books:detail' thread.book.pk %}">{{ thread.book.title }}</a>
+        <strong class="ms-2">작성자:</strong> <a href="{% url 'accounts:profile' thread.user.username %}">{{ thread.user.username }}</a>
+        <strong class="ms-2">독서일:</strong> {{ thread.reading_date }}
+      </p>
+      <hr>
+      <p>{{ thread.content|linebreaksbr }}</p>
 
-  <p>도서: {{ thread.book.title }}</p>
-  <p>작성자: {{ thread.user.username }}</p>
-  <p>내용: {{ thread.content }}</p>
-  <p>독서일: {{ thread.reading_date }}</p>
-  <p>작성일: {{ thread.created_at }}</p>
-  <p>수정일: {{ thread.updated_at }}</p>
+      {% if request.user == thread.user %}
+        <div class="d-flex gap-2">
+          <a class="btn btn-secondary btn-sm" href="{% url 'books:thread_update' thread.pk %}">수정</a>
+          <form action="{% url 'books:thread_delete' thread.pk %}" method="POST"
+                onsubmit="return confirm('쓰레드를 삭제할까요?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">삭제</button>
+          </form>
+        </div>
+      {% endif %}
 
-  {% if request.user == thread.user %}
-    <a href="{% url 'books:thread_update' thread.pk %}">수정</a>
-
-    <form action="{% url 'books:thread_delete' thread.pk %}" method="POST">
-      {% csrf_token %}
-      <input type="submit" value="삭제">
-    </form>
-  {% endif %}
-
-  <hr>
-
-  <a href="{% url 'books:detail' thread.book.pk %}">도서 상세로 돌아가기</a>
+      <hr>
+      <a class="btn btn-secondary btn-sm" href="{% url 'books:detail' thread.book.pk %}">BACK</a>
+    </div>
+  </div>
 {% endblock content %}
