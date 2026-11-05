@@ -133,3 +133,41 @@ class IndexViewTests(TestCase):
 
     def test_empty_state_message(self):
         self.assertContains(self.client.get(self.url), '등록된 도서가 없습니다.')
+
+
+class CreateViewTests(TestCase):
+    """F616 create"""
+
+    url = reverse_lazy('books:create')
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+
+    def data(self, **overrides):
+        return {'title': '데미안', 'description': '설명', 'rating': 9, 'author': '헤르만 헤세', **overrides}
+
+    def test_get_renders_form_for_logged_in_user(self):
+        self.client.force_login(self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="title"')
+
+    def test_valid_post_saves_with_current_user_and_redirects_to_detail(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, self.data())
+        book = Book.objects.get()
+        self.assertEqual(book.user, self.user)
+        self.assertRedirects(response, reverse('books:detail', args=[book.pk]))
+
+    def test_invalid_post_shows_error_and_saves_nothing(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url, self.data(rating=11))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'text-danger')
+        self.assertFalse(Book.objects.exists())
+
+    def test_anonymous_user_cannot_create(self):
+        for response in (self.client.get(self.url), self.client.post(self.url, self.data())):
+            self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+        self.assertFalse(Book.objects.exists())

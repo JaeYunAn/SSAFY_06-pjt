@@ -1,11 +1,16 @@
 {% extends 'base.html' %}
 
-{% block content %}
-  <h1>도서 등록</h1>
+{% block title %}도서 등록 | ThRead{% endblock title %}
 
-  <form action="{% url 'books:create' %}" method="POST">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <input type="submit" value="등록">
-  </form>
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <h1 class="h3 mb-3">도서 등록 페이지</h1>
+      <form action="{% url 'books:create' %}" method="POST">
+        {% csrf_token %}
+        {% include 'partials/form_fields.html' %}
+        <button type="submit" class="btn btn-primary">제출</button>
+      </form>
+    </div>
+  </div>
 {% endblock content %}
