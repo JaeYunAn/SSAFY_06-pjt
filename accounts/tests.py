@@ -81,3 +81,34 @@ class UserFormTests(TestCase):
         form = CustomUserCreationForm()
         self.assertIn('form-control', form.fields['username'].widget.attrs['class'])
         self.assertIn('form-select', form.fields['gender'].widget.attrs['class'])
+
+
+class LoginViewTests(TestCase):
+    """F607 login"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.url = reverse('accounts:login')
+
+    def test_get_renders_login_form(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'accounts/login.html')
+        self.assertContains(response, 'name="username"')
+        self.assertContains(response, 'name="password"')
+
+    def test_valid_credentials_create_session_and_redirect_to_main(self):
+        response = self.client.post(self.url, {'username': 'reader', 'password': PASSWORD})
+        self.assertRedirects(response, reverse('books:index'))
+        self.assertEqual(int(self.client.session[SESSION_KEY]), self.user.pk)
+
+    def test_invalid_credentials_show_error_without_session(self):
+        response = self.client.post(self.url, {'username': 'reader', 'password': 'wrong'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'alert-danger')
+        self.assertNotIn(SESSION_KEY, self.client.session)
+
+    def test_authenticated_user_is_sent_to_main(self):
+        self.client.force_login(self.user)
+        self.assertRedirects(self.client.get(self.url), reverse('books:index'))
