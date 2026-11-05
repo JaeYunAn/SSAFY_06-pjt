@@ -171,3 +171,51 @@ class CreateViewTests(TestCase):
         for response in (self.client.get(self.url), self.client.post(self.url, self.data())):
             self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
         self.assertFalse(Book.objects.exists())
+
+
+class DetailViewTests(TestCase):
+    """F617 detail"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = make_user('owner')
+        cls.other = make_user('other')
+        cls.book = make_book(cls.owner, rating=8.5)
+        cls.url = reverse('books:detail', args=[cls.book.pk])
+
+    def test_shows_book_fields_and_back_link(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        for text in ('데미안', '성장 소설', '8.5 / 10', '헤르만 헤세', reverse('books:index')):
+            self.assertContains(response, text)
+
+    def test_lists_only_threads_of_this_book(self):
+        thread = make_thread(self.owner, self.book, title='이 책의 쓰레드')
+        make_thread(self.owner, make_book(self.owner, title='다른 책'), title='다른 책의 쓰레드')
+        response = self.client.get(self.url)
+        self.assertContains(response, '이 책의 쓰레드')
+        self.assertContains(response, reverse('books:thread_detail', args=[thread.pk]))
+        self.assertNotContains(response, '다른 책의 쓰레드')
+
+    def test_owner_sees_update_and_delete(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse('books:update', args=[self.book.pk]))
+        self.assertContains(response, reverse('books:delete', args=[self.book.pk]))
+
+    def test_others_do_not_see_update_and_delete(self):
+        for login in (False, True):
+            if login:
+                self.client.force_login(self.other)
+            response = self.client.get(self.url)
+            self.assertNotContains(response, reverse('books:update', args=[self.book.pk]))
+            self.assertNotContains(response, reverse('books:delete', args=[self.book.pk]))
+
+    def test_thread_create_link_is_shown_only_when_logged_in(self):
+        link = reverse('books:thread_create', args=[self.book.pk])
+        self.assertNotContains(self.client.get(self.url), link)
+        self.client.force_login(self.other)
+        self.assertContains(self.client.get(self.url), link)
+
+    def test_unknown_book_returns_404(self):
+        self.assertEqual(self.client.get(reverse('books:detail', args=[99999])).status_code, 404)

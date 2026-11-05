@@ -39,7 +39,7 @@ def create(request):
 @require_safe
 def detail(request, book_pk):
     book = get_object_or_404(Book, pk=book_pk)
-    threads = book.thread_set.all()
+    threads = book.thread_set.select_related('user')
 
     context = {
         'book': book,
