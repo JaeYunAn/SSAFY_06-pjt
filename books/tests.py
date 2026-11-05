@@ -264,3 +264,30 @@ class UpdateViewTests(TestCase):
     def test_anonymous_user_is_sent_to_login(self):
         response = self.client.post(self.url, self.data())
         self.assertRedirects(response, f"{reverse('accounts:login')}?next={self.url}")
+
+
+class DeleteViewTests(TestCase):
+    """F619 delete"""
+
+    def setUp(self):
+        self.owner = make_user('owner')
+        self.other = make_user('other')
+        self.book = make_book(self.owner)
+        self.url = reverse('books:delete', args=[self.book.pk])
+
+    def test_owner_post_deletes_and_redirects_to_main(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('books:index'))
+        self.assertFalse(Book.objects.exists())
+
+    def test_other_user_cannot_delete(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(self.url).status_code, 403)
+        self.assertTrue(Book.objects.exists())
+
+    def test_get_is_not_allowed_even_for_anonymous_user(self):
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.client.force_login(self.owner)
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+        self.assertTrue(Book.objects.exists())

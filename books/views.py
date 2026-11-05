@@ -71,8 +71,8 @@ def update(request, book_pk):
     return render(request, 'books/update.html', context)
 
 
-@login_required
 @require_POST
+@login_required
 def delete(request, book_pk):
     book = get_object_or_404(Book, pk=book_pk)
 
