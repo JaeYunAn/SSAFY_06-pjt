@@ -28,20 +28,24 @@ class Book(models.Model):
 class Thread(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        verbose_name='작성자',
     )
-    book = models.ForeignKey(
-        Book,
-        on_delete=models.CASCADE
-    )
-    title = models.CharField(max_length=100)
-    content = models.TextField()
-    reading_date = models.DateField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, verbose_name='도서')
+    title = models.CharField('제목', max_length=100)
+    content = models.TextField('내용')
+    reading_date = models.DateField('독서일')
+    created_at = models.DateTimeField('생성 시각', auto_now_add=True)
+    updated_at = models.DateTimeField('수정 시각', auto_now=True)
     like_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         related_name='like_threads',
-        blank=True
+        blank=True,
+        verbose_name='좋아요한 사용자',
     )
+
+    class Meta:
+        ordering = ['-pk']
+
+    def __str__(self):
+        return self.title

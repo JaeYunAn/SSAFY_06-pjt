@@ -50,3 +50,35 @@ class BookModelTests(TestCase):
     def test_newest_book_comes_first(self):
         first, second = make_book(self.user), make_book(self.user)
         self.assertEqual(list(Book.objects.all()), [second, first])
+
+
+class ThreadModelTests(TestCase):
+    """F605 books Model Class (Thread)"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = make_user()
+        cls.book = make_book(cls.user)
+
+    def test_thread_stores_required_fields(self):
+        thread = make_thread(self.user, self.book)
+        thread.refresh_from_db()
+        self.assertEqual(thread.title, '내면의 거울')
+        self.assertEqual(thread.content, '깊은 감상')
+        self.assertEqual(thread.reading_date, date(2026, 10, 8))
+        self.assertIsNotNone(thread.created_at)
+        self.assertIsNotNone(thread.updated_at)
+
+    def test_thread_relations(self):
+        thread = make_thread(self.user, self.book)
+        fan = make_user('fan')
+        thread.like_users.add(fan)
+        self.assertIn(thread, self.book.thread_set.all())
+        self.assertIn(thread, self.user.thread_set.all())
+        self.assertIn(thread, fan.like_threads.all())
+        self.assertIn(fan, thread.like_users.all())
+
+    def test_deleting_book_deletes_its_threads(self):
+        make_thread(self.user, self.book)
+        Book.objects.filter(pk=self.book.pk).delete()
+        self.assertFalse(Thread.objects.exists())
