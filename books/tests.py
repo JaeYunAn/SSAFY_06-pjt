@@ -365,3 +365,45 @@ class ThreadDetailViewTests(TestCase):
             response = self.client.get(self.url)
             self.assertNotContains(response, reverse('books:thread_update', args=[self.thread.pk]))
             self.assertNotContains(response, reverse('books:thread_delete', args=[self.thread.pk]))
+
+
+class ThreadUpdateViewTests(TestCase):
+    """F622 thread_update"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = make_user('owner')
+        cls.other = make_user('other')
+        cls.thread = make_thread(cls.owner, make_book(cls.owner))
+        cls.url = reverse('books:thread_update', args=[cls.thread.pk])
+
+    def data(self, **overrides):
+        return {'title': '수정된 감상', 'content': '수정된 내용', 'reading_date': '2026-11-01', **overrides}
+
+    def test_get_prefills_previous_data_including_date(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(self.url)
+        self.assertContains(response, 'value="내면의 거울"')
+        self.assertContains(response, '깊은 감상')
+        self.assertContains(response, 'value="2026-10-08"')
+
+    def test_valid_post_saves_and_redirects_to_thread_detail(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.data())
+        self.assertRedirects(response, reverse('books:thread_detail', args=[self.thread.pk]))
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.title, '수정된 감상')
+
+    def test_invalid_post_shows_error_and_keeps_data(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.data(title=''))
+        self.assertContains(response, 'text-danger')
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.title, '내면의 거울')
+
+    def test_only_owner_can_update(self):
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.assertEqual(self.client.post(self.url, self.data()).status_code, 403)
+        self.thread.refresh_from_db()
+        self.assertEqual(self.thread.title, '내면의 거울')
