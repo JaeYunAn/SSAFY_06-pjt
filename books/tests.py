@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
 
+from .forms import BookForm, ThreadForm
 from .models import Book, Thread
 
 User = get_user_model()
@@ -82,3 +83,35 @@ class ThreadModelTests(TestCase):
         make_thread(self.user, self.book)
         Book.objects.filter(pk=self.book.pk).delete()
         self.assertFalse(Thread.objects.exists())
+
+
+class BookThreadFormTests(TestCase):
+    """F606 books Form Class"""
+
+    def test_book_form_accepts_valid_data(self):
+        form = BookForm({'title': '데미안', 'description': '설명', 'rating': 9.5, 'author': '헤르만 헤세'})
+        self.assertTrue(form.is_valid())
+
+    def test_book_form_rejects_invalid_data(self):
+        form = BookForm({'title': '', 'description': '설명', 'rating': 11, 'author': '헤르만 헤세'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('title', form.errors)
+        self.assertIn('rating', form.errors)
+
+    def test_book_form_does_not_expose_owner(self):
+        self.assertNotIn('user', BookForm().fields)
+
+    def test_thread_form_rejects_invalid_date(self):
+        form = ThreadForm({'title': '제목', 'content': '내용', 'reading_date': 'not-a-date'})
+        self.assertFalse(form.is_valid())
+        self.assertIn('reading_date', form.errors)
+
+    def test_thread_form_prefills_date_in_iso_format(self):
+        user = make_user()
+        thread = make_thread(user, make_book(user))
+        self.assertIn('value="2026-10-08"', ThreadForm(instance=thread)['reading_date'].as_widget())
+
+    def test_thread_form_does_not_expose_relations(self):
+        fields = ThreadForm().fields
+        for name in ('user', 'book', 'like_users'):
+            self.assertNotIn(name, fields)
