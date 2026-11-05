@@ -64,6 +64,7 @@ def profile(request, username):
 
     context = {
         'person': person,
+        'threads': person.thread_set.select_related('book'),
     }
     return render(request, 'accounts/profile.html', context)
 

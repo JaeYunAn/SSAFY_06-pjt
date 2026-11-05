@@ -8,6 +8,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse, reverse_lazy
 from PIL import Image
 
+from books.models import Book, Thread
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 
 User = get_user_model()
@@ -193,3 +194,54 @@ class SignupViewTests(TestCase):
     def test_authenticated_user_is_sent_to_main(self):
         self.client.force_login(make_user())
         self.assertRedirects(self.client.get(self.url), reverse('books:index'))
+
+
+class ProfileViewTests(TestCase):
+    """F610 profile"""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.person = make_user(
+            'writer', email='writer@example.com', last_name='김', first_name='작가',
+            gender=User.Gender.FEMALE, age=31, weekly_reading_time=9, yearly_reading_count=40,
+        )
+        cls.viewer = make_user('viewer')
+        cls.url = reverse('accounts:profile', args=['writer'])
+
+    def test_anonymous_user_can_view_member_data(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        for text in ('writer@example.com', '김작가', '여성', '31', '9시간', '40권'):
+            self.assertContains(response, text)
+
+    def test_profile_shows_threads_written_by_person(self):
+        book = Book.objects.create(user=self.person, title='도서', description='d', rating=5, author='a')
+        thread = Thread.objects.create(user=self.person, book=book, title='나의 감상', content='c', reading_date='2026-01-01')
+        Thread.objects.create(user=self.viewer, book=book, title='남의 감상', content='c', reading_date='2026-01-01')
+        response = self.client.get(self.url)
+        self.assertContains(response, '나의 감상')
+        self.assertContains(response, reverse('books:thread_detail', args=[thread.pk]))
+        self.assertNotContains(response, '남의 감상')
+
+    def test_profile_shows_follower_and_following_counts(self):
+        self.viewer.followings.add(self.person)
+        response = self.client.get(self.url)
+        self.assertContains(response, '팔로워 : 1')
+        self.assertContains(response, '팔로잉 : 0')
+
+    def test_own_profile_shows_update_and_delete(self):
+        self.client.force_login(self.person)
+        response = self.client.get(self.url)
+        self.assertContains(response, reverse('accounts:update'))
+        self.assertContains(response, reverse('accounts:delete'))
+
+    def test_other_profile_hides_update_and_delete(self):
+        for login in (False, True):
+            if login:
+                self.client.force_login(self.viewer)
+            response = self.client.get(self.url)
+            self.assertNotContains(response, reverse('accounts:update'))
+            self.assertNotContains(response, reverse('accounts:delete'))
+
+    def test_unknown_user_returns_404(self):
+        self.assertEqual(self.client.get(reverse('accounts:profile', args=['nobody'])).status_code, 404)

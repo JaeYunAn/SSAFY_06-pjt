@@ -1,27 +1,58 @@
 {% extends 'base.html' %}
 
+{% block title %}{{ person.username }}님의 프로필 | ThRead{% endblock title %}
+
 {% block content %}
-  <h1>{{ person.username }}님의 프로필</h1>
+  <h1 class="h3 border-bottom pb-2 mb-3">{{ person.username }}님의 프로필</h1>
 
   {% if person.profile_image %}
-    <img src="{{ person.profile_image.url }}" alt="프로필 사진" width="150">
+    <img src="{{ person.profile_image.url }}" alt="{{ person.username }}의 프로필 사진"
+         class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
   {% endif %}
 
-  <p>이메일: {{ person.email }}</p>
-  <p>성: {{ person.last_name }}</p>
-  <p>이름: {{ person.first_name }}</p>
-  <p>성별: {{ person.gender }}</p>
-  <p>나이: {{ person.age }}</p>
-  <p>주간 평균 독서 시간: {{ person.weekly_reading_time }}</p>
-  <p>연간 독서량: {{ person.yearly_reading_count }}</p>
+  <dl class="row mb-0">
+    <dt class="col-sm-3">아이디</dt>
+    <dd class="col-sm-9">{{ person.username }}</dd>
+    <dt class="col-sm-3">이메일</dt>
+    <dd class="col-sm-9">{{ person.email|default:"-" }}</dd>
+    <dt class="col-sm-3">이름</dt>
+    <dd class="col-sm-9">{{ person.last_name }}{{ person.first_name }}</dd>
+    <dt class="col-sm-3">성별</dt>
+    <dd class="col-sm-9">{{ person.get_gender_display|default:"-" }}</dd>
+    <dt class="col-sm-3">나이</dt>
+    <dd class="col-sm-9">{{ person.age|default_if_none:"-" }}</dd>
+    <dt class="col-sm-3">주간 평균 독서 시간</dt>
+    <dd class="col-sm-9">{{ person.weekly_reading_time }}시간</dd>
+    <dt class="col-sm-3">연간 독서량</dt>
+    <dd class="col-sm-9">{{ person.yearly_reading_count }}권</dd>
+  </dl>
+
+  <hr>
+  <p class="mb-1">팔로워 : {{ person.followers.count }}</p>
+  <p>팔로잉 : {{ person.followings.count }}</p>
+  <hr>
 
   {% if request.user == person %}
-    <a href="{% url 'accounts:update' %}">회원정보 수정</a>
-    <a href="{% url 'accounts:change_password' %}">비밀번호 변경</a>
-
-    <form action="{% url 'accounts:delete' %}" method="POST">
-      {% csrf_token %}
-      <input type="submit" value="회원 탈퇴">
-    </form>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-secondary btn-sm" href="{% url 'accounts:update' %}">회원정보 수정</a>
+      <form action="{% url 'accounts:delete' %}" method="POST"
+            onsubmit="return confirm('정말 탈퇴하시겠습니까? 작성한 도서와 쓰레드도 함께 삭제됩니다.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger btn-sm">회원탈퇴</button>
+      </form>
+    </div>
+    <hr>
   {% endif %}
+
+  <h2 class="h5">작성한 쓰레드</h2>
+  <ul class="list-group">
+    {% for thread in threads %}
+      <li class="list-group-item">
+        <a href="{% url 'books:thread_detail' thread.pk %}">{{ thread.title }}</a>
+        <span class="text-body-secondary small">| {{ thread.book.title }}</span>
+      </li>
+    {% empty %}
+      <li class="list-group-item text-body-secondary">작성한 쓰레드가 없습니다.</li>
+    {% endfor %}
+  </ul>
 {% endblock content %}
