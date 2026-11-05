@@ -3,12 +3,12 @@
 **ThRead**는 도서를 등록하고, 읽은 뒤의 감상을 쓰레드(게시글)로 나누는 Django 도서 커뮤니티입니다.
 도서를 등록하면 작가 정보를, 쓰레드를 작성하면 감상의 분위기를 담은 커버 이미지를 생성형 AI가 만들어 줍니다.
 
-| 항목 | 내용 |
-| --- | --- |
-| 팀원 | 고은비(초기 프로젝트 구성과 기본 CRUD), 안재윤(이후 요구사항 구현과 산출물 정리) |
-| 기술 스택 | Python 3.11, Django 5.2, Bootstrap 5.3, SQLite |
-| 외부 API | 위키피디아 API, SSAFY GMS(gpt-5-nano, gpt-image-2) |
-| 테스트 | `python manage.py test` 161개 통과 (외부 API는 모의 객체로 대체) |
+| 항목      | 내용                                                                             |
+| --------- | -------------------------------------------------------------------------------- |
+| 팀원      | 고은비(초기 프로젝트 구성과 기본 CRUD), 안재윤(이후 요구사항 구현과 산출물 정리) |
+| 기술 스택 | Python 3.11, Django 5.2, Bootstrap 5.3, SQLite                                   |
+| 외부 API  | 위키피디아 API, SSAFY GMS(gpt-5-nano, gpt-image-2)                               |
+| 테스트    | `python manage.py test` 161개 통과 (외부 API는 모의 객체로 대체)               |
 
 ## 실행 방법
 
@@ -24,10 +24,10 @@ python manage.py runserver
 
 접속 주소는 `http://127.0.0.1:8000/`입니다. `GMS_KEY`가 없어도 서비스는 동작하며, AI 생성 내용만 비어 있고 안내 메시지가 표시됩니다.
 
-| 계정 | 비밀번호 | 용도 |
-| --- | --- | --- |
-| `admin` | `1234` | 관리자 페이지(`/admin/`) |
-| `alex`, `sora` | `ssafy1234!` | 샘플 사용자 |
+| 계정               | 비밀번호       | 용도                       |
+| ------------------ | -------------- | -------------------------- |
+| `admin`          | `1234`       | 관리자 페이지(`/admin/`) |
+| `alex`, `sora` | `ssafy1234!` | 샘플 사용자                |
 
 ## 주요 기능
 
@@ -78,39 +78,39 @@ erDiagram
 
 실행 결과 칸의 숫자를 누르면 캡처 화면이 열립니다. 전체 캡처는 [실행결과](실행결과)에 있습니다.
 
-| 번호 | 요구사항 | 구분 | 커밋 | 실행 결과 |
-| --- | --- | --- | --- | --- |
-| F601 | 프로젝트 구성 | 필수 | `efab370` | [1](실행결과/F601_1_main_page_anonymous.png) · [2](실행결과/F601_2_main_page_logged_in.png) |
-| F602 | accounts Model Class | 필수 | `fee2d81` | [1](실행결과/F602_admin_user_model.png) |
-| F603 | accounts Form Class | 필수 | `dba3862` | [1](실행결과/F603_1_signup_form_validation.png) |
-| F604 | books Model Class (Book) | 필수 | `6fb0430` | [1](실행결과/F604_admin_book_model.png) |
-| F605 | books Model Class (Thread) | 필수 | `6efa86a` | [1](실행결과/F605_admin_thread_model.png) |
-| F606 | books Form Class | 필수 | `1308343` | [1](실행결과/F606_1_book_form_validation.png) |
-| F607 | login | 필수 | `0083a03` | [1](실행결과/F607_1_login_page.png) · [2](실행결과/F607_2_login_error.png) · [3](실행결과/F607_3_login_success_navbar.png) |
-| F608 | logout | 필수 | `f9297be` | [1](실행결과/F608_1_before_logout.png) · [2](실행결과/F608_2_after_logout_redirect_main.png) |
-| F609 | signup | 필수 | `a9bad8e` | [1](실행결과/F609_1_signup_page.png) · [2](실행결과/F609_2_signup_success_redirect_main.png) |
-| F610 | profile | 필수 | `4cdcdb1` | [1](실행결과/F610_1_own_profile.png) · [2](실행결과/F610_2_other_profile.png) |
-| F611 | follow | 필수 | `1815ae5` | [1](실행결과/F611_1_before_follow.png) · [2](실행결과/F611_2_after_follow.png) |
-| F612 | update (회원정보) | 필수 | `98ac3d1` | [1](실행결과/F612_1_update_page_no_sensitive_fields.png) · [2](실행결과/F612_2_updated_redirect_main.png) |
-| F613 | delete (회원탈퇴) | 필수 | `f0ba96a` | [1](실행결과/F613_1_own_profile_delete_button.png) · [2](실행결과/F613_2_deleted_redirect_main.png) |
-| F614 | change_password | 필수 | `a812ddc` | [1](실행결과/F614_1_change_password_page.png) · [2](실행결과/F614_2_changed_still_logged_in_main.png) |
-| F615 | index | 필수 | `2eb19d3` | [1](실행결과/F615_index.png) |
-| F616 | create | 필수 | `d084899` | [1](실행결과/F616_1_book_create_page.png) · [2](실행결과/F616_2_book_created_detail.png) |
-| F617 | detail | 필수 | `2bd3c45` | [1](실행결과/F617_book_detail.png) |
-| F618 | update (도서) | 필수 | `bc919d4` | [1](실행결과/F618_book_update_prefilled.png) |
-| F619 | delete (도서) | 필수 | `b4ebdc8` | [1](실행결과/F619_1_before_delete.png) · [2](실행결과/F619_2_deleted_redirect_main.png) |
-| F620 | thread_create | 필수 | `3f7abb4` | [1](실행결과/F620_1_thread_create_page.png) · [2](실행결과/F620_2_thread_created_detail.png) |
-| F621 | thread_detail | 필수 | `d6443e6` | [1](실행결과/F621_thread_detail.png) |
-| F622 | thread_update | 필수 | `27932d6` | [1](실행결과/F622_thread_update_prefilled.png) |
-| F623 | thread_delete | 필수 | `c4ff9cd` | [1](실행결과/F623_1_before_delete.png) · [2](실행결과/F623_2_deleted_redirect_book_detail.png) |
-| F624 | like | 필수 | `daae3e7` | [1](실행결과/F624_1_before_like.png) · [2](실행결과/F624_2_after_like.png) |
-| F625 | 정보 생성 및 저장 | 심화 | `976103b` | [1](실행결과/F625_author_info_generated.png) |
-| F626 | 커버 이미지 | 심화 | `37b4963` | [1](실행결과/F626_thread_cover_generated.png) |
-| F627 | 쓰레드 댓글 | 심화 | `6edf397` | [1](실행결과/F627_1_no_comments.png) · [2](실행결과/F627_2_comment_created_delete_only_own.png) · [3](실행결과/F627_3_comment_deleted.png) |
-| F628 | 카테고리 | 심화 | `18caef1` | [1](실행결과/F628_1_signup_select_genres.png) · [2](실행결과/F628_2_profile_shows_genres.png) · [3](실행결과/F628_3_book_create_select_category.png) · [4](실행결과/F628_4_book_detail_category.png) · [5](실행결과/F628_5_index_filter_science.png) · [6](실행결과/F628_6_index_filter_empty.png) |
-| NF601 | Git 활용 | 필수 | `964b15a`, `5f44a60` | [NF601_gitlab_commits.png](실행결과/NF601_gitlab_commits.png) |
-| NF602 | URL 구성 | 필수 | `1e48b4e` | [1](실행결과/NF602_1_books_named_url_patterns.png) · [2](실행결과/NF602_2_accounts_named_url_patterns.png) |
-| NF603 | HTTP Method 허용 | 필수 | `48d4feb` | [1](실행결과/NF603_get_on_post_only_view_405.png) |
+| 번호  | 요구사항                   | 구분 | 커밋                     | 실행 결과                                                                                                                                                                                                                                                                                         |
+| ----- | -------------------------- | ---- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F601  | 프로젝트 구성              | 필수 | `efab370`              | [1](실행결과/F601_1_main_page_anonymous.png) · [2](실행결과/F601_2_main_page_logged_in.png)                                                                                                                                                                                                        |
+| F602  | accounts Model Class       | 필수 | `fee2d81`              | [1](실행결과/F602_admin_user_model.png)                                                                                                                                                                                                                                                            |
+| F603  | accounts Form Class        | 필수 | `dba3862`              | [1](실행결과/F603_1_signup_form_validation.png)                                                                                                                                                                                                                                                    |
+| F604  | books Model Class (Book)   | 필수 | `6fb0430`              | [1](실행결과/F604_admin_book_model.png)                                                                                                                                                                                                                                                            |
+| F605  | books Model Class (Thread) | 필수 | `6efa86a`              | [1](실행결과/F605_admin_thread_model.png)                                                                                                                                                                                                                                                          |
+| F606  | books Form Class           | 필수 | `1308343`              | [1](실행결과/F606_1_book_form_validation.png)                                                                                                                                                                                                                                                      |
+| F607  | login                      | 필수 | `0083a03`              | [1](실행결과/F607_1_login_page.png) · [2](실행결과/F607_2_login_error.png) · [3](실행결과/F607_3_login_success_navbar.png)                                                                                                                                                                         |
+| F608  | logout                     | 필수 | `f9297be`              | [1](실행결과/F608_1_before_logout.png) · [2](실행결과/F608_2_after_logout_redirect_main.png)                                                                                                                                                                                                       |
+| F609  | signup                     | 필수 | `a9bad8e`              | [1](실행결과/F609_1_signup_page.png) · [2](실행결과/F609_2_signup_success_redirect_main.png)                                                                                                                                                                                                       |
+| F610  | profile                    | 필수 | `4cdcdb1`              | [1](실행결과/F610_1_own_profile.png) · [2](실행결과/F610_2_other_profile.png)                                                                                                                                                                                                                      |
+| F611  | follow                     | 필수 | `1815ae5`              | [1](실행결과/F611_1_before_follow.png) · [2](실행결과/F611_2_after_follow.png)                                                                                                                                                                                                                     |
+| F612  | update (회원정보)          | 필수 | `98ac3d1`              | [1](실행결과/F612_1_update_page_no_sensitive_fields.png) · [2](실행결과/F612_2_updated_redirect_main.png)                                                                                                                                                                                          |
+| F613  | delete (회원탈퇴)          | 필수 | `f0ba96a`              | [1](실행결과/F613_1_own_profile_delete_button.png) · [2](실행결과/F613_2_deleted_redirect_main.png)                                                                                                                                                                                                |
+| F614  | change_password            | 필수 | `a812ddc`              | [1](실행결과/F614_1_change_password_page.png) · [2](실행결과/F614_2_changed_still_logged_in_main.png)                                                                                                                                                                                              |
+| F615  | index                      | 필수 | `2eb19d3`              | [1](실행결과/F615_index.png)                                                                                                                                                                                                                                                                       |
+| F616  | create                     | 필수 | `d084899`              | [1](실행결과/F616_1_book_create_page.png) · [2](실행결과/F616_2_book_created_detail.png)                                                                                                                                                                                                           |
+| F617  | detail                     | 필수 | `2bd3c45`              | [1](실행결과/F617_book_detail.png)                                                                                                                                                                                                                                                                 |
+| F618  | update (도서)              | 필수 | `bc919d4`              | [1](실행결과/F618_book_update_prefilled.png)                                                                                                                                                                                                                                                       |
+| F619  | delete (도서)              | 필수 | `b4ebdc8`              | [1](실행결과/F619_1_before_delete.png) · [2](실행결과/F619_2_deleted_redirect_main.png)                                                                                                                                                                                                            |
+| F620  | thread_create              | 필수 | `3f7abb4`              | [1](실행결과/F620_1_thread_create_page.png) · [2](실행결과/F620_2_thread_created_detail.png)                                                                                                                                                                                                       |
+| F621  | thread_detail              | 필수 | `d6443e6`              | [1](실행결과/F621_thread_detail.png)                                                                                                                                                                                                                                                               |
+| F622  | thread_update              | 필수 | `27932d6`              | [1](실행결과/F622_thread_update_prefilled.png)                                                                                                                                                                                                                                                     |
+| F623  | thread_delete              | 필수 | `c4ff9cd`              | [1](실행결과/F623_1_before_delete.png) · [2](실행결과/F623_2_deleted_redirect_book_detail.png)                                                                                                                                                                                                     |
+| F624  | like                       | 필수 | `daae3e7`              | [1](실행결과/F624_1_before_like.png) · [2](실행결과/F624_2_after_like.png)                                                                                                                                                                                                                         |
+| F625  | 정보 생성 및 저장          | 심화 | `976103b`              | [1](실행결과/F625_author_info_generated.png)                                                                                                                                                                                                                                                       |
+| F626  | 커버 이미지                | 심화 | `37b4963`              | [1](실행결과/F626_thread_cover_generated.png)                                                                                                                                                                                                                                                      |
+| F627  | 쓰레드 댓글                | 심화 | `6edf397`              | [1](실행결과/F627_1_no_comments.png) · [2](실행결과/F627_2_comment_created_delete_only_own.png) · [3](실행결과/F627_3_comment_deleted.png)                                                                                                                                                         |
+| F628  | 카테고리                   | 심화 | `18caef1`              | [1](실행결과/F628_1_signup_select_genres.png) · [2](실행결과/F628_2_profile_shows_genres.png) · [3](실행결과/F628_3_book_create_select_category.png) · [4](실행결과/F628_4_book_detail_category.png) · [5](실행결과/F628_5_index_filter_science.png) · [6](실행결과/F628_6_index_filter_empty.png) |
+| NF601 | Git 활용                   | 필수 | `964b15a`, `5f44a60` | [NF601_gitlab_commits.png](실행결과/NF601_gitlab_commits.png)                                                                                                                                                                                                                                      |
+| NF602 | URL 구성                   | 필수 | `1e48b4e`              | [1](실행결과/NF602_1_books_named_url_patterns.png) · [2](실행결과/NF602_2_accounts_named_url_patterns.png)                                                                                                                                                                                         |
+| NF603 | HTTP Method 허용           | 필수 | `48d4feb`              | [1](실행결과/NF603_get_on_post_only_view_405.png)                                                                                                                                                                                                                                                  |
 
 ## Git 협업 원칙 (NF601)
 
@@ -123,8 +123,8 @@ erDiagram
 
 ### 브랜치별 용도
 
-| 브랜치 | 용도 |
-| --- | --- |
+| 브랜치     | 용도                                    |
+| ---------- | --------------------------------------- |
 | `master` | 모든 요구사항의 개발과 제출 기준 브랜치 |
 
 ### 원칙 점검
@@ -132,10 +132,6 @@ erDiagram
 - 전체 34개 커밋(README 정리 전 기준) 중 규칙을 세우기 전의 초기 커밋 `12f5c02`를 제외하고 메시지 형식을 지켰으며, 요구사항마다 커밋과 푸시를 반복했습니다.
 - 단일 브랜치로 운영해 병합 충돌은 없었습니다.
 - **발생한 문제와 원인:** 초기 커밋에 `__pycache__`, `db.sqlite3`, 대외비 PDF가 포함되어 있었습니다. 원인은 `.gitignore`에 `venv`만 있었던 것입니다. 이미 추적 중인 파일은 `.gitignore`에 추가해도 제외되지 않으므로 `git rm --cached`로 추적을 해제했습니다. 이 파일들은 과거 커밋에는 남아 있습니다. DB가 빠진 대신 `seed_demo` 명령어로 같은 계정과 샘플 데이터를 만들 수 있게 했습니다.
-
-### GitLab 커밋 기록
-
-![GitLab 커밋 기록](실행결과/NF601_gitlab_commits.png)
 
 ## 학습 내용
 
